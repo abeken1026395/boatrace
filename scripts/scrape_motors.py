@@ -29,7 +29,7 @@ HEADERS = {
     "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
 }
 
-OUTPUT_DIR = "docs"
+OUTPUT_DIR = os.path.join("docs", "motor")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_PATH = os.path.join(SCRIPT_DIR, "template.html")
 
