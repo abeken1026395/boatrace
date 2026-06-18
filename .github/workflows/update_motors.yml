@@ -2,35 +2,37 @@ name: モーターデータ自動更新
 
 on:
   schedule:
-    # 毎日 日本時間 朝8時 (UTC 23時) に実行
-    - cron: '0 23 * * *'
-  workflow_dispatch:   # 手動実行も可能にする
+    - cron: '7 23 * * *'
+    - cron: '37 23 * * *'
+    - cron: '7 0 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: boatrace-data
+  cancel-in-progress: false
 
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - name: リポジトリをチェックアウト
-        uses: actions/checkout@v4
-
-      - name: Pythonをセットアップ
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: 必要ライブラリをインストール
-        run: pip install requests beautifulsoup4 pandas lxml
-
-      - name: スクレイピング実行
-        run: python scripts/scrape_motors.py
-
-      - name: 結果をコミット
+      - run: pip install requests beautifulsoup4 pandas lxml
+      - run: python scripts/scrape_motors.py
+      - name: commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/
-          git diff --staged --quiet || git commit -m "モーターデータ自動更新 $(date +'%Y-%m-%d')"
-          git push
+          git diff --staged --quiet && echo "no change" && exit 0
+          git commit -m "モーターデータ自動更新 $(date +'%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin main && break
+            echo "push retry $i ..."
+            sleep 5
+          done
