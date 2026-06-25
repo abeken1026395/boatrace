@@ -142,6 +142,22 @@ def parse_racelist(html, jcd, venue, hd, rno):
     return records
 
 
+def get_open_venues(hd):
+    """「本日のレース」一覧から本日開催している場コードの集合を返す。
+    非開催場はこの一覧に並ばないため、すり替わり（リダイレクトで別場の直近データ）を防げる。
+    取得できなければ None を返し、呼び出し側は従来どおり全場を試す。"""
+    url = "https://www.boatrace.jp/owpc/pc/race/index?hd={}".format(hd)
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=12)
+        if resp.status_code != 200:
+            return None
+        # 一覧テーブルの各行に jcd=XX&hd=該当日 が埋まっている。該当日のものだけ拾う。
+        found = set(re.findall(r"jcd=(\d{2})&hd=" + re.escape(hd), resp.text))
+        return found if found else None
+    except Exception:
+        return None
+
+
 def find_open_date_and_scrape(jcd, venue):
     # 本日のみを対象にする。非開催場の前回/次節データを誤って拾わないため、
     # 過去日(-1等)や先の日付は探さない。本日のページに出走表が無ければ「開催なし」。
@@ -159,15 +175,21 @@ def find_open_date_and_scrape(jcd, venue):
             if not recs:
                 continue
             all_recs = list(recs)
-            for rno in range(2, 13):
+            # 2R〜12Rを並列取得（直列＋sleepがボトルネックだったため）。
+            # 1場あたり最大6並列。レース順は後で関係ないが、枠番は各レース内で振るため問題なし。
+            def fetch_race(rno):
                 u = "https://www.boatrace.jp/owpc/pc/race/racelist?rno={}&jcd={}&hd={}".format(rno, jcd, hd)
                 try:
                     r = requests.get(u, headers=HEADERS, timeout=12)
                     if r.status_code == 200:
-                        all_recs.extend(parse_racelist(r.text, jcd, venue, hd, rno))
+                        return parse_racelist(r.text, jcd, venue, hd, rno)
                 except Exception:
                     pass
-                time.sleep(0.4)
+                return []
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=6) as ex:
+                for recs_r in ex.map(fetch_race, range(2, 13)):
+                    all_recs.extend(recs_r)
             return hd, all_recs
         except Exception:
             continue
@@ -179,8 +201,19 @@ def main():
     print("出走表スクレイパー v3 (自動実行)")
     print("実行日時:", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     print()
+    today_hd = datetime.date.today().strftime("%Y%m%d")
+    open_venues = get_open_venues(today_hd)
+    if open_venues:
+        print("本日開催場: {} 場 ({})".format(len(open_venues), " ".join(sorted(open_venues))))
+    else:
+        print("開催場リスト取得失敗 → 全場を試行（従来動作）")
+    print()
     all_records = []
     for jcd, name in VENUES.items():
+        # 開催場リストが取れていて、そこに無い場はスキップ（非開催のすり替わりを防止）
+        if open_venues is not None and jcd not in open_venues:
+            print("[{}] {} ... 非開催（スキップ）".format(jcd, name))
+            continue
         print("[{}] {} ...".format(jcd, name), end=" ", flush=True)
         hd, records = find_open_date_and_scrape(jcd, name)
         if not records:
