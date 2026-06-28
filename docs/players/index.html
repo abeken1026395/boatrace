@@ -27,6 +27,7 @@ function App() {
   const [sortKey, setSortKey] = useState("win");
   const [open, setOpen] = useState(null);
   const [kim, setKim] = useState({});
+  const [prof, setProf] = useState({});
   useEffect(()=>{
     fetch("racerKimarite.csv").then(r=>r.ok?r.text():Promise.reject()).then(t=>{
       const lines=t.trim().split(/\r?\n/); if(lines.length<2) return;
@@ -42,6 +43,11 @@ function App() {
         };
       }
       setKim(m);
+    }).catch(()=>{});
+  },[]);
+  useEffect(()=>{
+    fetch("profile.json").then(r=>r.ok?r.json():Promise.reject()).then(j=>{
+      if(j && typeof j==="object") setProf(j);
     }).catch(()=>{});
   },[]);
 
@@ -102,12 +108,14 @@ function App() {
         {filtered.slice(0,300).map(p=>{
           const isOpen = open===p.no;
           const k = kim[p.no];
+          const pf = prof[p.no];
           return (
             <div key={p.no} onClick={()=>setOpen(isOpen?null:p.no)} style={{background:"#0f1923",borderRadius:12,cursor:"pointer",overflow:"hidden",borderLeft:"4px solid "+RANK_LINE[p.rank],boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}>
               {/* 一覧行（旧版踏襲: バッジ＋名前＋右に大きな数字2列） */}
               <div style={{display:"flex",alignItems:"center",padding:"14px 16px",gap:12}}>
                 <span style={{fontSize:13,fontWeight:800,padding:"4px 9px",borderRadius:8,background:RANK_BADGE[p.rank],color:"#fff",flexShrink:0}}>{p.rank}</span>
                 <div style={{minWidth:0,flex:1}}>
+                  {pf&&pf.tagline&&<div style={{display:"inline-block",fontSize:10,fontWeight:800,color:"#ffd166",background:"#ffd16618",border:"1px solid #ffd16640",borderRadius:5,padding:"1px 7px",marginBottom:3,letterSpacing:0.5}}>{pf.tagline}</div>}
                   <div style={{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap"}}>
                     <span style={{fontSize:19,fontWeight:800,color:"#e8edf2"}}>{p.name}{p.female&&<span style={{color:"#ff7eb6",marginLeft:3,fontSize:15}}>♥</span>}</span>
                     <span style={{fontSize:13,color:"#6b7f95"}}>{p.branch}</span>
@@ -138,6 +146,7 @@ function App() {
                       </div>
                     ))}
                   </div>
+                  {pf&&pf.hobby&&<div style={{fontSize:12,color:"#c5d2e0",marginTop:-4,marginBottom:14}}>🎣 趣味：{pf.hobby}</div>}
                   <div style={{fontSize:11,color:"#8faabe",fontWeight:700,marginBottom:6}}>■ 成績</div>
                   <div style={{display:"flex",gap:14,flexWrap:"wrap",marginBottom:14,background:"#0b1219",borderRadius:8,padding:"10px 12px"}}>
                     {[["出走",p.syutsu],["1着",p.win1],["2着",p.win2],["優勝",p.yusyo],["優出",p.yusyutsu],["平均ST",p.avgst],["F数",p.f]].map(([l,v],i)=>(
