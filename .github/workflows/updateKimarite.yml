@@ -1,0 +1,50 @@
+name: update kimarite
+
+on:
+  workflow_dispatch:        # 手動実行できるようにする
+  schedule:
+    # 6ヶ月窓は動きが遅いので月2回でじゅうぶん。
+    # 他ジョブ(モーター/出走表)と時間帯をずらし、:00ぴったりも避ける。
+    # UTC 19:23 = JST 翌04:23
+    - cron: "23 19 1,15 * *"
+
+# 同時実行の取り合いを避ける（このジョブ専用グループ）
+concurrency:
+  group: boatrace-kimarite
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lhasa (lzh解凍)
+        run: sudo apt-get update && sudo apt-get install -y lhasa
+
+      - name: Run scraper
+        env:
+          KIMARITE_DAYS: "183"
+          KIMARITE_SLEEP: "1.0"
+        run: python scripts/scrapeKimarite.py
+
+      - name: Commit & push if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/players/racerKimarite.csv
+          if git diff --cached --quiet; then
+            echo "変更なし。コミットしない。"
+          else
+            git commit -m "update kimarite (racerKimarite.csv)"
+            git push
+          fi
