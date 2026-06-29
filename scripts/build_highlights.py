@@ -176,10 +176,13 @@ def main():
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
     prev_path = os.path.join(out_dir, 'highlights_prev.json') if out_dir else 'highlights_prev.json'
+    prev2_path = os.path.join(out_dir, 'highlights_prev2.json') if out_dir else 'highlights_prev2.json'
     try:
         with open(OUT, 'r', encoding='utf-8') as pf:
             old_doc = json.load(pf)
         if old_doc.get('開催日') and old_doc.get('開催日') != kaisai:
+            if os.path.exists(prev_path):
+                os.replace(prev_path, prev2_path)
             with open(prev_path, 'w', encoding='utf-8') as pf:
                 json.dump(old_doc, pf, ensure_ascii=False, separators=(',', ':'))
     except FileNotFoundError:
