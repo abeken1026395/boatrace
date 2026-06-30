@@ -23,6 +23,12 @@ CONFIRMED = {'尼崎','徳山','芦屋','下関','大村','常滑'}
 MAKURI = {'戸田','江戸川','びわこ','平和島'}
 K = '①②③④⑤⑥'
 
+# --- 検証用 引き算スコア（標準化＋等重み・仮置き）---
+# 重み・閾値は検証ログのスコア相関を見てから調整する。
+LV = {'A1': 4, 'A2': 3, 'B1': 2, 'B2': 1}
+TH_KATA = 0.09    # スコア >= +0.09 → 堅め
+TH_HARAN = -0.09  # スコア <= -0.09 → 波乱（間は混戦）
+
 def f(x):
     try: return float(x)
     except: return 0.0
@@ -40,6 +46,26 @@ def main():
     except Exception:
         mot = []
     mkey = {(m['場コード'], m['登録番号']): f(m['モーター2連対率']) for m in mot}
+
+    # --- 検証スコア用 正規化（当日全出走者でmin-max・等重み）---
+    def loc_or_nat(r):
+        l = f(r['当地勝率']); return l if l > 0 else f(r['全国勝率'])
+    _lv = [LV.get(r['級別'], 1) for r in rac]
+    _loc = [loc_or_nat(r) for r in rac]
+    _st = [f(r['平均ST']) for r in rac]
+    _mtp = [v for v in (mkey.get((r['場コード'], r['登録番号']), 0.0) for r in rac) if v > 0]
+    lv_lo, lv_hi = (min(_lv), max(_lv)) if _lv else (1, 4)
+    loc_lo, loc_hi = (min(_loc), max(_loc)) if _loc else (0.0, 1.0)
+    st_lo, st_hi = (min(_st), max(_st)) if _st else (0.1, 0.3)
+    mt_lo, mt_hi = (min(_mtp), max(_mtp)) if _mtp else (0.0, 1.0)
+    def _nz(v, lo, hi): return (v - lo) / (hi - lo) if hi > lo else 0.5
+    def total_power(r):
+        parts = [_nz(LV.get(r['級別'], 1), lv_lo, lv_hi),
+                 _nz(loc_or_nat(r), loc_lo, loc_hi),
+                 1 - _nz(f(r['平均ST']), st_lo, st_hi)]  # STは速い(小)ほど良い→反転
+        mv = mkey.get((r['場コード'], r['登録番号']), 0.0)
+        if mv > 0: parts.append(_nz(mv, mt_lo, mt_hi))
+        return sum(parts) / len(parts)
 
     # 図鑑の決まり手CSVから やられ系（さされ・まくられ・まくりさされ）を読む。
     # 旧フォーマット（列が無い）やファイル欠損でも落ちないようにする。
@@ -79,9 +105,20 @@ def main():
         races[(r['場名'], r['レース'])].append(r)
 
     out_races = []
+    pred_list = []
     for (ba, rc), bo in races.items():
         if len(bo) != 6: continue
         bo.sort(key=lambda b: int(b['枠']))
+        # --- 検証ログ：①総合力 − ④総合力（標準化・等重み）---
+        diff = round(total_power(bo[0]) - total_power(bo[3]), 3)
+        if diff >= TH_KATA:
+            verdict, hero = '堅め', 1
+        elif diff <= TH_HARAN:
+            verdict, hero = '波乱', 4
+        else:
+            verdict, hero = '混戦', 4
+        pred_list.append({'場名': ba, '場コード': bo[0]['場コード'], 'レース': rc,
+                          '判定': verdict, '主役艇': hero, 'スコア': diff})
         it = INTOP.get(ba, 53)
         use_m = motok.get(ba, True)
         mt = [b['_mtr'] for b in bo]
@@ -226,6 +263,21 @@ def main():
     with open(OUT, 'w', encoding='utf-8') as fp:
         json.dump(doc, fp, ensure_ascii=False, separators=(',', ':'))
     print(f"OK: {len(out_races)}レース → {OUT}")
+
+    # --- 検証ログ：予測を確定保存（結果を見る前・一度書いたら動かさない）---
+    # 公開highlights.jsonには判定/主役艇を入れず、非公開predictions/にだけ残す。
+    if pred_list:
+        os.makedirs('predictions', exist_ok=True)
+        pred_path = os.path.join('predictions', f'{kaisai}.json')
+        if os.path.exists(pred_path):
+            print(f"PRED skip: {pred_path} 既存（予測は動かさない）")
+        else:
+            pred_doc = {'開催日': kaisai, '生成時刻': doc['生成時刻'],
+                        '閾値': {'堅め': TH_KATA, '波乱': TH_HARAN},
+                        '予測': pred_list}
+            with open(pred_path, 'w', encoding='utf-8') as pf:
+                json.dump(pred_doc, pf, ensure_ascii=False, separators=(',', ':'))
+            print(f"PRED: {len(pred_list)}レース → {pred_path}")
 
 if __name__ == '__main__':
     main()
