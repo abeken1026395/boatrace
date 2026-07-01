@@ -26,12 +26,17 @@ function App() {
   const [arareF, setArareF] = useState("ALL");
   const [open, setOpen] = useState(null);
   const [announcers, setAnnouncers] = useState(null);
+  const [gourmet, setGourmet] = useState(null);
 
   useEffect(() => {
     fetch("../announcers/announcers.json?v=" + Date.now())
       .then(r => r.json())
       .then(setAnnouncers)
       .catch(() => setAnnouncers([]));
+    fetch("gourmet.json?v=" + Date.now())
+      .then(r => r.json())
+      .then(setGourmet)
+      .catch(() => setGourmet({}));
   }, []);
   const ancByVenue = (name) => (announcers || []).filter(a => (a.venues||[]).includes(name));
 
@@ -116,6 +121,40 @@ function App() {
                     <span style={{color:"#c9a8ff",fontWeight:700}}>🏆 SG・G1開催時　</span>
                     <span style={{color:"#e0e6ed"}}>{s.sg}</span>
                   </div>
+                  {gourmet && gourmet[s.name] && (
+                  <div style={{marginTop:8,background:"#2a1410",border:"1px solid #5a2f16",borderRadius:8,padding:"8px 10px"}}>
+                    <span style={{color:"#ff9a5a",fontWeight:700}}>🍜 場グルメ</span>
+                    {gourmet[s.name].in && gourmet[s.name].in.length > 0 && (
+                    <div style={{marginTop:6}}>
+                      <div style={{fontSize:11,color:"#e0a878",fontWeight:700,marginBottom:3}}>場内メシ</div>
+                      {gourmet[s.name].in.map((g,i) => (
+                        <div key={i} style={{marginBottom:5,paddingLeft:8,borderLeft:"2px solid #5a2f16"}}>
+                          <span style={{color:"#ffd0a8",fontWeight:700}}>{g.name}</span>
+                          {g.where ? <span style={{fontSize:11,color:"#a88060"}}>（{g.where}）</span> : null}
+                          {g.price ? <span style={{fontSize:11,color:"#7fe0a0",marginLeft:4}}>{g.price}</span> : null}
+                          <div style={{fontSize:12,color:"#c5d2e0",lineHeight:1.5}}>{g.desc}</div>
+                        </div>
+                      ))}
+                    </div>
+                    )}
+                    {gourmet[s.name].out && gourmet[s.name].out.length > 0 && (
+                    <div style={{marginTop:6}}>
+                      <div style={{fontSize:11,color:"#e0a878",fontWeight:700,marginBottom:3}}>遠征メシ（場周辺）</div>
+                      {gourmet[s.name].out.map((g,i) => (
+                        <div key={i} style={{marginBottom:5,paddingLeft:8,borderLeft:"2px solid #5a2f16"}}>
+                          <span style={{color:"#ffd0a8",fontWeight:700}}>{g.name}</span>
+                          {g.dist ? <span style={{fontSize:11,color:"#a88060"}}>（{g.dist}）</span> : null}
+                          {g.price ? <span style={{fontSize:11,color:"#7fe0a0",marginLeft:4}}>{g.price}</span> : null}
+                          <div style={{fontSize:12,color:"#c5d2e0",lineHeight:1.5}}>{g.desc}</div>
+                        </div>
+                      ))}
+                    </div>
+                    )}
+                    <div style={{marginTop:5,fontSize:11,color:"#a07050"}}>
+                      価格は{gourmet[s.name].asof || "取得時点"}の目安（時期・メニューで変動）。出典：{gourmet[s.name].src || "公式・現地"}。
+                    </div>
+                  </div>
+                  )}
                   {announcers && ancByVenue(s.name).length > 0 && (
                   <div style={{marginTop:8,background:"#241a10",border:"1px solid #5a4516",borderRadius:8,padding:"8px 10px"}}>
                     <span style={{color:"#ffd166",fontWeight:700}}>🎙 実況アナ　</span>
