@@ -1,0 +1,106 @@
+{
+  "venue": "桐生",
+  "jcd": "01",
+  "manThreshold": 10000,
+  "overall": {
+    "total": 0,
+    "man": 0,
+    "manRate": 0.0,
+    "avgPayout": 0
+  },
+  "byRace": [
+    {
+      "rno": 1,
+      "total": 0,
+      "man": 0,
+      "manRate": 0.0,
+      "avgPayout": 0
+    },
+    {
+      "rno": 2,
+      "total": 0,
+      "man": 0,
+      "manRate": 0.0,
+      "avgPayout": 0
+    },
+    {
+      "rno": 3,
+      "total": 0,
+      "man": 0,
+      "manRate": 0.0,
+      "avgPayout": 0
+    },
+    {
+      "rno": 4,
+      "total": 0,
+      "man": 0,
+      "manRate": 0.0,
+      "avgPayout": 0
+    },
+    {
+      "rno": 5,
+      "total": 0,
+      "man": 0,
+      "manRate": 0.0,
+      "avgPayout": 0
+    },
+    {
+      "rno": 6,
+      "total": 0,
+      "man": 0,
+      "manRate": 0.0,
+      "avgPayout": 0
+    },
+    {
+      "rno": 7,
+      "total": 0,
+      "man": 0,
+      "manRate": 0.0,
+      "avgPayout": 0
+    },
+    {
+      "rno": 8,
+      "total": 0,
+      "man": 0,
+      "manRate": 0.0,
+      "avgPayout": 0
+    },
+    {
+      "rno": 9,
+      "total": 0,
+      "man": 0,
+      "manRate": 0.0,
+      "avgPayout": 0
+    },
+    {
+      "rno": 10,
+      "total": 0,
+      "man": 0,
+      "manRate": 0.0,
+      "avgPayout": 0
+    },
+    {
+      "rno": 11,
+      "total": 0,
+      "man": 0,
+      "manRate": 0.0,
+      "avgPayout": 0
+    },
+    {
+      "rno": 12,
+      "total": 0,
+      "man": 0,
+      "manRate": 0.0,
+      "avgPayout": 0
+    }
+  ],
+  "frameContribution": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0,
+    "6": 0
+  },
+  "top5": []
+}
