@@ -207,11 +207,17 @@ def main():
         inA = in1['級別'] in ('A1', 'A2')
         in_lo = lo(mt[0])
         in_strong = inA and il > ina and il > 0 and not in_lo
-        # イン天国(it>=60)では当地/機力の見劣り単独で①不安にしない（B級のみ不安）
+        inB = in1['級別'] in ('B1', 'B2')
+        # ①不安の判定（全場共通）：
+        #  ・B級インは不安。
+        #  ・A級インは当地見劣り単独では不安にしない（格が担保）。機力下位のときだけ不安。
+        #  ・イン天国(it>=60)ではB級のみ不安（機力下位でも水面が残す）。
         if it >= 60:
-            in_weak = (in1['級別'] in ('B1', 'B2'))
+            in_weak = inB
+        elif inA:
+            in_weak = in_lo
         else:
-            in_weak = (in1['級別'] in ('B1', 'B2')) or (il > 0 and il < ina) or in_lo
+            in_weak = inB or (il > 0 and il < ina) or in_lo
 
         seeds = 0
         if in_weak: seeds += 1
