@@ -7,16 +7,26 @@ import io
 import os
 import re
 import csv
+import glob
 import time
 import datetime
+import tempfile
+import subprocess
 import urllib.request
 
-BASE = "http://www1.mbrace.or.jp/od2/K/"
+# https直叩き（http://は301でhttpsへ飛ぶ。urllibはリダイレクト追従するがhttps固定で往復を省く）
+BASE = "https://www1.mbrace.or.jp/od2/K/"
 OUT = os.path.join("docs", "payouts", "tokuyamaPayouts.csv")
 SLEEP = 1.0  # サーバ負荷軽減（高速版）
 DAYS_BACK = 365
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) boatrace-data-collector"
+
+# LZH解凍はWindows同梱bsdtar(libarchive)を使う。lhafileはPython3.14でC拡張ビルド不可のため。
+BSDTAR = os.environ.get(
+    "BSDTAR",
+    os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "tar.exe"),
+)
 
 TOKU = "\u5fb3\u3000\u5c71\uff3b\u6210\u7e3e\uff3d"   # 徳　山［成績］
 SEISEKI = "\uff3b\u6210\u7e3e\uff3d"                  # ［成績］
@@ -25,12 +35,35 @@ PAYLINE = re.compile(r"\s*(\d{1,2})R\s+(\d)-(\d)-(\d)\s+(\d+)")
 
 
 def fetch(url):
+    # urllibは301/302を自動追従する。mbraceは応答が遅め(~20s)なのでtimeoutを長めに。
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
-        with urllib.request.urlopen(req, timeout=8) as r:
+        with urllib.request.urlopen(req, timeout=40) as r:
             return r.read()
     except Exception:
         return None
+
+
+def unlzh(raw):
+    """LZHバイト列をbsdtarで解凍し、内側テキスト(K*.TXT)のバイト列を返す。失敗時None。"""
+    with tempfile.TemporaryDirectory() as td:
+        lzh = os.path.join(td, "k.lzh")
+        with open(lzh, "wb") as f:
+            f.write(raw)
+        try:
+            subprocess.run(
+                [BSDTAR, "-xf", lzh, "-C", td],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            return None
+        txts = glob.glob(os.path.join(td, "*.TXT")) + glob.glob(os.path.join(td, "*.txt"))
+        if not txts:
+            return None
+        with open(txts[0], "rb") as f:
+            return f.read()
 
 
 def extract_tokuyama(txt):
@@ -72,9 +105,29 @@ def load_done():
     return done
 
 
+def last_collected_date():
+    """CSVに記録済みの最終開催日(datetime.date)。無ければNone。"""
+    if not os.path.exists(OUT):
+        return None
+    last = None
+    with io.open(OUT, "r", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        for row in reader:
+            if not row:
+                continue
+            hd = row[0]
+            if len(hd) == 8 and hd.isdigit():
+                if last is None or hd > last:
+                    last = hd
+    if last is None:
+        return None
+    return datetime.date(int(last[0:4]), int(last[4:6]), int(last[6:8]))
+
+
 def date_list():
-    ym = os.environ.get("YM", "").strip()
     today = datetime.date.today()
+    ym = os.environ.get("YM", "").strip()
     if ym:
         y, m = int(ym[0:4]), int(ym[4:6])
         d = datetime.date(y, m, 1)
@@ -83,18 +136,23 @@ def date_list():
             out.append(d)
             d += datetime.timedelta(days=1)
         return out
-    days = int(os.environ.get("DAYS", str(DAYS_BACK)))
-    start = today - datetime.timedelta(days=days)
+
+    # daily差分: 前回取得日の翌日 〜 昨日（全期間の再取得はしない）
+    yesterday = today - datetime.timedelta(days=1)
+    last = last_collected_date()
+    if last is not None:
+        start = last + datetime.timedelta(days=1)
+    else:
+        start = yesterday - datetime.timedelta(days=int(os.environ.get("DAYS", str(DAYS_BACK))))
     out = []
     d = start
-    while d <= today:
+    while d <= yesterday:
         out.append(d)
         d += datetime.timedelta(days=1)
     return out
 
 
 def main():
-    import lhafile
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     done = load_done()
     new_file = not os.path.exists(OUT)
@@ -117,14 +175,9 @@ def main():
         time.sleep(SLEEP)
         if not raw or len(raw) < 100:
             continue
-        # LZH解凍
-        tmp = "/tmp/k%s.lzh" % yymmdd
-        open(tmp, "wb").write(raw)
-        try:
-            a = lhafile.Lhafile(tmp)
-            name = a.infolist()[0].filename
-            data = a.read(name)
-        except Exception:
+        # LZH解凍（bsdtar）
+        data = unlzh(raw)
+        if not data:
             continue
         txt = data.decode("shift_jis", "ignore")
         rows = extract_tokuyama(txt)
