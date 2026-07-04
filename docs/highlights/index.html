@@ -30,6 +30,8 @@ h1{font-size:22px;font-weight:800;margin-top:4px}
 .chead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .rname{font-weight:800;font-size:15.5px}
 .deadline{color:var(--sub);font-size:12px;margin-left:auto}
+.kikaku{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(255,209,102,.16);color:var(--acc);margin-left:6px}
+.vsetsu{font-size:12px;color:var(--sub);padding:2px 12px 8px;line-height:1.4}
 .badge{font-size:11px;font-weight:800;padding:3px 8px;border-radius:20px}
 .b-hot{background:rgba(255,107,91,.16);color:var(--hot);border:1px solid rgba(255,107,91,.4)}
 .b-firm{background:rgba(74,168,255,.16);color:var(--firm);border:1px solid rgba(74,168,255,.4)}
@@ -195,7 +197,7 @@ function badge(r){
 
 function renderCard(r){
   return `<div class="card">
-    <div class="chead"><span class="rname">${r['場名']} ${r['レース']}</span>${badge(r)}
+    <div class="chead"><span class="rname">${r['場名']} ${r['レース']}</span>${r['企画名']?`<span class="kikaku">${r['企画名']}</span>`:''}${badge(r)}
       ${r['締切時刻']?`<span class="deadline">締切 ${r['締切時刻']}</span>`:''}</div>
     <div class="boats">${r['艇'].map(b=>boatRow(b, r['場名'])).join('')}</div>
     <div class="headline"><span class="lbl">見立て</span><span>${r['見立て']}</span></div>
@@ -223,12 +225,16 @@ function renderVenues(){
     const hot=v.list.filter(r=>r['波乱']>=4).length;  // 波乱の多いレース数
     const open=OPEN_VENUE===ba;
     const races=v.list.slice().sort((x,y)=>parseInt(x['レース'])-parseInt(y['レース']));
+    const first=v.list[0]||{};
+    const setsu=first['節名']||''; const nichi=first['日目']||'';
+    const setsuLine=setsu?`<div class="vsetsu">${setsu}${nichi?`（${nichi}）`:''}</div>`:'';
     return `<div class="venue">
       <div class="vhead${open?' open':''}" onclick="toggleVenue('${ba}')">
         <span class="vname">${ba}</span>
         <span class="vmeta">${v.list.length}R${hot?` ・波乱${hot}`:''}</span>
         <span class="varrow">${open?'▲':'▼'}</span>
       </div>
+      ${setsuLine}
       ${open?`<div class="vbody">${races.map(renderCard).join('')}</div>`:''}
     </div>`;
   }).join('');
