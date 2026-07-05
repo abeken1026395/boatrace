@@ -192,7 +192,7 @@ def main():
         elif diff <= TH_HARAN:
             verdict, hero = '波乱', 4
         else:
-            verdict, hero = '混戦', 4
+            verdict, hero = '混戦', 1
         pred_list.append({'場名': ba, '場コード': bo[0]['場コード'], 'レース': rc,
                           '判定': verdict, '主役艇': hero, 'スコア': diff})
         it = INTOP.get(ba, 53)
