@@ -72,6 +72,46 @@ def extract_all(txt):
     return res
 
 
+def load_text_for(hd):
+    """指定日(YYYYMMDD)の競走成績テキストをmbraceからDLして返す。取れなければNone。"""
+    d = datetime.datetime.strptime(hd, "%Y%m%d").date()
+    url = "{0}{1}/k{2}.lzh".format(BASE, d.strftime("%Y%m"), d.strftime("%y%m%d"))
+    raw = fetch(url)
+    time.sleep(1.0)
+    if not raw or len(raw) < 100:
+        return None
+    import lhafile
+    tmp = "/tmp/k%s.lzh" % d.strftime("%y%m%d")
+    open(tmp, "wb").write(raw)
+    a = lhafile.Lhafile(tmp)
+    name = a.infolist()[0].filename
+    return a.read(name).decode("shift_jis", "ignore")
+
+
+def write_results(txt, hd):
+    res = extract_all(txt)
+    races = []
+    for jcd in sorted(res):
+        for rno in sorted(res[jcd]):
+            r = res[jcd][rno]
+            top3 = r["combo"].split("-")
+            races.append({
+                "場コード": jcd,
+                "レース": "%dR" % rno,
+                "着順": r["combo"],
+                "1着": int(top3[0]), "2着": int(top3[1]), "3着": int(top3[2]),
+                "三連単配当": r["payout"],
+            })
+    os.makedirs("results", exist_ok=True)
+    outpath = os.path.join("results", "%s.json" % hd)
+    obj = {"開催日": hd, "取得時刻": datetime.datetime.now().isoformat(timespec="seconds"),
+           "レース数": len(races), "結果": races}
+    with io.open(outpath, "w", encoding="utf-8") as f:
+        json.dump(obj, f, ensure_ascii=False, indent=1)
+    print("wrote", outpath, "races", len(races), "venues", len(res))
+    return len(races)
+
+
 def load_text():
     local = os.environ.get("LOCAL_LZH", "").strip()
     if local:
@@ -98,30 +138,30 @@ def load_text():
 
 
 def main():
-    txt, hd = load_text()
-    if not txt:
-        print("no data for", hd)
+    # LOCAL_LZH 指定時は従来どおり単日（ローカル検証用）
+    local = os.environ.get("LOCAL_LZH", "").strip()
+    if local:
+        txt, hd = load_text()
+        if not txt:
+            print("no data for", hd)
+            return
+        write_results(txt, hd)
         return
-    res = extract_all(txt)
-    races = []
-    for jcd in sorted(res):
-        for rno in sorted(res[jcd]):
-            r = res[jcd][rno]
-            top3 = r["combo"].split("-")
-            races.append({
-                "場コード": jcd,
-                "レース": "%dR" % rno,
-                "着順": r["combo"],
-                "1着": int(top3[0]), "2着": int(top3[1]), "3着": int(top3[2]),
-                "三連単配当": r["payout"],
-            })
-    os.makedirs("results", exist_ok=True)
-    outpath = os.path.join("results", "%s.json" % hd)
-    obj = {"開催日": hd, "取得時刻": datetime.datetime.now().isoformat(timespec="seconds"),
-           "レース数": len(races), "結果": races}
-    with io.open(outpath, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, indent=1)
-    print("wrote", outpath, "races", len(races), "venues", len(res))
+
+    # HD にカンマ区切りで複数日を渡せる。空欄なら当日(JST)。
+    hd_env = os.environ.get("HD", "").strip()
+    if hd_env:
+        days = [x.strip() for x in hd_env.replace("、", ",").split(",") if x.strip()]
+    else:
+        today = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+        days = [today.date().strftime("%Y%m%d")]
+
+    for hd in days:
+        txt = load_text_for(hd)
+        if not txt:
+            print("no data for", hd)
+            continue
+        write_results(txt, hd)
 
 
 if __name__ == "__main__":

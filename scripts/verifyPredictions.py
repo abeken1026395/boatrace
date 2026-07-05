@@ -22,9 +22,16 @@ def load(path):
 
 
 def main():
-    hd = os.environ.get("HD", "").strip()
-    if not hd:
-        hd = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime("%Y%m%d")
+    hd_env = os.environ.get("HD", "").strip()
+    if hd_env:
+        days = [x.strip() for x in hd_env.replace("、", ",").split(",") if x.strip()]
+    else:
+        days = [(datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime("%Y%m%d")]
+    for hd in days:
+        verify_one(hd)
+
+
+def verify_one(hd):
     pred = load(os.path.join("predictions", "%s.json" % hd))
     res = load(os.path.join("results", "%s.json" % hd))
     if not pred or not res:
