@@ -1,23 +1,18 @@
-name: regen predictions (past month)
+name: regen predictions (parallel)
 
 on:
   workflow_dispatch:
-    inputs:
-      start:
-        description: "開始日 YYYYMMDD"
-        required: true
-        default: "20260606"
-      end:
-        description: "終了日 YYYYMMDD"
-        required: true
-        default: "20260705"
 
 jobs:
   regen:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    permissions:
-      contents: write
+    timeout-minutes: 120
+    strategy:
+      matrix:
+        range:
+          - { s: "20250715", e: "20251115", id: "a" }
+          - { s: "20251116", e: "20260315", id: "b" }
+          - { s: "20260316", e: "20260605", id: "c" }
     steps:
       - uses: actions/checkout@v4
 
@@ -26,14 +21,34 @@ jobs:
           python-version: "3.12"
 
       - name: regenerate predictions
-        run: python scripts/regenPredictions.py "${{ github.event.inputs.start }}" "${{ github.event.inputs.end }}"
+        env:
+          SKIPW: "1"
+        run: python scripts/regenPredictions.py "${{ matrix.range.s }}" "${{ matrix.range.e }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: preds-${{ matrix.range.id }}
+          path: predictions/
+
+  commit:
+    needs: regen
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: preds-*
+          merge-multiple: true
+          path: predictions/
 
       - name: commit
-        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add predictions/
-          git diff --cached --quiet || git commit -m "regen predictions ${{ github.event.inputs.start }}-${{ github.event.inputs.end }}"
+          git diff --cached --quiet || git commit -m "regen predictions 20250715-20260605 parallel"
           git pull --rebase origin main || true
           git push
