@@ -10,9 +10,10 @@ jobs:
     strategy:
       matrix:
         range:
-          - { s: "20250715", e: "20251115", id: "a" }
-          - { s: "20251116", e: "20260315", id: "b" }
-          - { s: "20260316", e: "20260605", id: "c" }
+          - { s: "20250715", e: "20251015", id: "a" }
+          - { s: "20251016", e: "20260115", id: "b" }
+          - { s: "20260116", e: "20260415", id: "c" }
+          - { s: "20260416", e: "20260705", id: "d" }
     steps:
       - uses: actions/checkout@v4
 
@@ -49,6 +50,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add predictions/
-          git diff --cached --quiet || git commit -m "regen predictions 20250715-20260605 parallel"
+          git diff --cached --quiet || git commit -m "regen predictions 20250715-20260705 parallel"
           git pull --rebase origin main || true
           git push
