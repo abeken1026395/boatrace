@@ -495,11 +495,14 @@ def main():
                 saten = "死角は①の粘り。Sが五分なら外の攻めが不発になり、①残しもある。"
                 skw = 1; sid = 'D11'
         elif any(t['w'] >= 4 for t in threats):
+            # 外の仕掛けを担う筆頭＝threatsのw>=4で最も脅威度の高い艇
+            out_thr = sorted([t for t in threats if t['w'] >= 4], key=lambda x: -x['w'])
             saten = "死角は外の仕掛け。Sが一枚決まれば隊形が乱れ、内の信頼は一気に揺らぐ。"
-            sid = 'D12'
+            skw = out_thr[0]['w']; sid = 'D12'
         else:
+            # 内が壁を作る＝主役の①が残る想定。死角艇は①
             saten = "内が壁を作れば波及は内で収まり、荒れの芽は限られる。"
-            sid = 'D13'
+            skw = 1; sid = 'D13'
         tenkai.append(saten)
 
         # --- 波及の連鎖（主役の決まり手型×場×イン強弱で分岐。同文を散らす）---
