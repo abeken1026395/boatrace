@@ -1,11 +1,11 @@
 # Phase2 live 検証レポート
 
-実行時刻(UTC): 2026-07-06 19:02:32
+実行時刻(UTC): 2026-07-06 19:05:26
 
 対象日: ['20260707', '20260708']
 
 ## 到達性チェック
-- index(20260707): status=200 len=50899 err=-
+- index(20260707): status=200 len=50897 err=-
 
 ## 探索ログ（開催場ヒットまで）
 ```
@@ -14,104 +14,118 @@
 
 ## 対象: jcd=01 桐生 / hd=20260707
 
-### 1R (status=200)
-- td総数=24 / info_idx=2
-- 1号艇の生td（info+4以降＝モーター/ボート/今節成績。改行は⏎で表示）:
+### 1号艇 tbody 生HTML（先頭〜4000字）
+- tbody内 <tr> 数: 4
+```html
+<tbody class="is-fs12">
+<tr>
+<td class="is-boatColor1 is-fs14" rowspan="4">１</td>
+<td rowspan="4"><a href="/owpc/pc/data/racersearch/profile?toban=3459"><img alt="" height="95" src="/racerphoto/3459.jpg" width="67"/></a>
+</td>
+<td rowspan="4">
+<div class="is-fs11">3459
+                            / <span class="">B1</span>
+</div>
+<div class="is-fs18 is-fBold"><a href="/owpc/pc/data/racersearch/profile?toban=3459">中野　　和裕</a>
+</div>
+<div class="is-fs11">佐賀/佐賀
+                        <br/>59歳/53.0kg
+                        </div>
+</td>
+<td class="is-lineH2" rowspan="4">F0
+                        <br/>L0
+                        <br/>0.17
+                      </td>
+<td class="is-lineH2" rowspan="4">3.44
+                        <br/>12.50
+                        <br/>23.75
+                      </td>
+<td class="is-lineH2" rowspan="4">0.00
+                        <br/>0.00
+                        <br/>0.00
+                      </td>
+<td class="is-lineH2" rowspan="4">58
+                        <br/>22.92
+                        <br/>36.46
+                      </td>
+<td class="is-lineH2" rowspan="4">70
+                        <br/>30.50
+                        <br/>47.52
+                      </td>
+<td rowspan="4"> </td>
+<td class="is-boatColor5">6</td>
+<td class=""> </td>
+<td class="is-boatColor2">1</td>
+<td class="is-boatColor6">7</td>
+<td class="is-boatColor4">6</td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class="is-outColor"> </td>
+<td class="is-outColor"> </td>
+<td rowspan="4"><a class="number2__add2020 is-type3" href="/owpc/pc/race/racelist?rno=5&amp;jcd=01&amp;hd=20260707">5R</a></td>
+</tr>
+<tr>
+<td class="">5</td>
+<td class=""> </td>
+<td class="">2</td>
+<td class="">6</td>
+<td class="">4</td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class="is-outColor"> </td>
+<td class="is-outColor"> </td>
+</tr>
+<tr>
+<td class="">.18</td>
+<td class=""> </td>
+<td class="">.24</td>
+<td class="">.17</td>
+<td class="">.12</td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class=""> </td>
+<td class="is-outColor"> </td>
+<td class="is-outColor"> </td>
+</tr>
+<tr class="is-fBold">
+<td class=""><a href="/owpc/pc/race/raceresult?rno=6&amp;jcd=01&amp;hd=20260704">６</a></td>
+<td class=""><a href="/owpc/pc/race/raceresult"></a></td>
+<td class=""><a href="/owpc/pc/race/raceresult?rno=1&amp;jcd=01&amp;hd=20260705">５</a></td>
+<td class=""><a href="/owpc/pc/race/raceresult?rno=7&amp;jcd=01&amp;hd=20260705">６</a></td>
+<td class=""><a href="/owpc/pc/race/raceresult?rno=6&amp;jcd=01&amp;hd=20260706">６</a></td>
+<td class=""><a href="/owpc/pc/race/raceresult"></a></td>
+<td class=""><a href="/owpc/pc/race/raceresult"></a></td>
+<td class=""><a href="/owpc/pc/race/raceresult"></a></td>
+<td class=""><a href="/owpc/pc/race/raceresult"></a></td>
+<td class=""><a href="/owpc/pc/race/raceresult"></a></td>
+<td class=""><a href="/owpc/pc/race/raceresult"></a></td>
+<td class=""><a href="/owpc/pc/race/raceresult"></a></td>
+<td class="is-outColor"><a href="/owpc/pc/race/raceresult"></a></td>
+<td class="is-outColor"><a href="/owpc/pc/race/raceresult"></a></td>
+</tr>
+</tbody>
 ```
-td[info+4] (abs 6): '58⏎22.92⏎36.46'
-td[info+5] (abs 7): '70⏎30.50⏎47.52'
-td[info+6] (abs 8): ''
-td[info+7] (abs 9): '6'
-td[info+8] (abs 10): ''
-td[info+9] (abs 11): '1'
-td[info+10] (abs 12): '7'
-td[info+11] (abs 13): '6'
-td[info+12] (abs 14): ''
-td[info+13] (abs 15): ''
-td[info+14] (abs 16): ''
-td[info+15] (abs 17): ''
-td[info+16] (abs 18): ''
-td[info+17] (abs 19): ''
-td[info+18] (abs 20): ''
-td[info+19] (abs 21): ''
-td[info+20] (abs 22): ''
-td[info+21] (abs 23): '5R'
+- tbody直下 各<tr>のtd:
 ```
-- parse結果 6 名:
+tr[0] (24td): ['１', '', '3459\n                            /⏎B1⏎中野\u3000\u3000和裕⏎佐賀/佐賀⏎59歳/53.0kg', 'F0⏎L0⏎0.17', '3.44⏎12.50⏎23.75', '0.00⏎0.00⏎0.00', '58⏎22.92⏎36.46', '70⏎30.50⏎47.52', '', '6', '', '1', '7', '6', '', '', '', '', '', '', '', '', '', '5R']
+tr[1] (14td): ['5', '', '2', '6', '4', '', '', '', '', '', '', '', '', '']
+tr[2] (14td): ['.18', '', '.24', '.17', '.12', '', '', '', '', '', '', '', '', '']
+tr[3] (14td): ['６', '', '５', '６', '６', '', '', '', '', '', '', '', '', '']
+```
 
-| 枠 | 氏名 | 1日目 | 2日目 | 3日目 | 4日目 | 5日目 | 6日目 |
-|---|---|---|---|---|---|---|---|
-| 1 | 中野　　和裕 | · | · | · | · | · | · |
-| 2 | 三村　　岳人 | · | · | · | · | · | · |
-| 3 | 藤原　　仙二 | · | · | · | · | · | · |
-| 4 | 大谷　　直弘 | · | · | · | · | · | · |
-| 5 | 米本　　圭佑 | · | · | · | · | · | · |
-| 6 | 広次　　　修 | · | · | · | · | · | · |
-
-### 2R (status=200)
-- td総数=24 / info_idx=2
-- 1号艇の生td（info+4以降＝モーター/ボート/今節成績。改行は⏎で表示）:
-```
-td[info+4] (abs 6): '64⏎34.78⏎54.35'
-td[info+5] (abs 7): '15⏎45.00⏎62.14'
-td[info+6] (abs 8): ''
-td[info+7] (abs 9): '7'
-td[info+8] (abs 10): ''
-td[info+9] (abs 11): '2'
-td[info+10] (abs 12): '8'
-td[info+11] (abs 13): '7'
-td[info+12] (abs 14): ''
-td[info+13] (abs 15): ''
-td[info+14] (abs 16): ''
-td[info+15] (abs 17): ''
-td[info+16] (abs 18): ''
-td[info+17] (abs 19): ''
-td[info+18] (abs 20): ''
-td[info+19] (abs 21): ''
-td[info+20] (abs 22): ''
-td[info+21] (abs 23): '6R'
-```
-- parse結果 6 名:
-
-| 枠 | 氏名 | 1日目 | 2日目 | 3日目 | 4日目 | 5日目 | 6日目 |
-|---|---|---|---|---|---|---|---|
-| 1 | 生方　　靖亜 | · | · | · | · | · | · |
-| 2 | 小黒　　竜吾 | · | · | · | · | · | · |
-| 3 | 小林　　一樹 | · | · | · | · | · | · |
-| 4 | 鶴田　　勇雄 | · | · | · | · | · | · |
-| 5 | 立具　　敬司 | · | · | · | · | · | · |
-| 6 | 麻生　　慎介 | · | · | · | · | · | · |
-
-### 3R (status=200)
-- td総数=24 / info_idx=2
-- 1号艇の生td（info+4以降＝モーター/ボート/今節成績。改行は⏎で表示）:
-```
-td[info+4] (abs 6): '49⏎38.30⏎48.94'
-td[info+5] (abs 7): '20⏎32.61⏎46.38'
-td[info+6] (abs 8): ''
-td[info+7] (abs 9): '2'
-td[info+8] (abs 10): ''
-td[info+9] (abs 11): '5'
-td[info+10] (abs 12): '9'
-td[info+11] (abs 13): '6'
-td[info+12] (abs 14): ''
-td[info+13] (abs 15): ''
-td[info+14] (abs 16): ''
-td[info+15] (abs 17): ''
-td[info+16] (abs 18): ''
-td[info+17] (abs 19): ''
-td[info+18] (abs 20): ''
-td[info+19] (abs 21): ''
-td[info+20] (abs 22): ''
-td[info+21] (abs 23): '8R'
-```
-- parse結果 6 名:
-
-| 枠 | 氏名 | 1日目 | 2日目 | 3日目 | 4日目 | 5日目 | 6日目 |
-|---|---|---|---|---|---|---|---|
-| 1 | 村岡　　　賢 | · | · | · | · | · | · |
-| 2 | 栗城　　　匠 | · | · | · | · | · | · |
-| 3 | 幸野　　史明 | · | · | · | · | · | · |
-| 4 | 吉田　　宗弘 | · | · | · | · | · | · |
-| 5 | 久富　　政弘 | · | · | · | · | · | · |
-| 6 | 鋤柄　　貴俊 | · | · | · | · | · | · |
+### 今節成績ヘッダ探索
+- '今節成績' を含むセル数: 0
