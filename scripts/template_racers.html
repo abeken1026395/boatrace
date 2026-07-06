@@ -245,13 +245,15 @@ function minsToClose(hd,dl){
 
 function findArare(jcd,rno,hd){
   if(!arare||!arare.races) return null;
-  /* 荒れ指数は生成日のレース専用。別日(翌日/stale)には適用しない */
-  if(hd&&arareHd&&arareHd!==hd) return null;
-  var hit=null;
+  var hit=null, hasHd=false;
   Object.keys(arare.races).forEach(function(k){
     var r=arare.races[k];
-    if(String(r.jcd)===String(jcd)&&parseInt(r.rno)===parseInt(rno)) hit=r;
+    if(String(r.jcd)!==String(jcd)||parseInt(r.rno)!==parseInt(rno)) return;
+    if(r.hd){ hasHd=true; if(String(r.hd)===String(hd)) hit=r; }
+    else if(!hit){ hit=r; }   /* 開催日フィールドが無い旧データ */
   });
+  /* 旧データ(hd無し)は生成日ガードで別日を排除。新データはhd厳密一致済み */
+  if(!hasHd && hd && arareHd && arareHd!==hd) return null;
   return hit;
 }
 function findWind(jcd,hd,dl){
@@ -313,12 +315,18 @@ function renderVenues(app,crumb,keys){
 function renderRaces(app,crumb,v){
   crumb.innerHTML='<a href="#" id="back">場一覧</a> ＞ '+esc(v.name);
   var rs=Object.keys(v.races).map(Number).sort(function(a,b){return a-b;});
-  app.innerHTML='<div class="rgrid">'+rs.map(function(r){
+  var anyDot=false;
+  var grid=rs.map(function(r){
     var rc=v.races[r], cl=isClosed(v.hd,rc.deadline)?" closed":"";
     var ar=findArare(v.jcd,r,v.hd);
     var dot=ar?'<span class="dot dot-'+esc(ar.level)+'"></span>':'';
+    if(ar) anyDot=true;
     return '<div class="rbtn'+cl+'" data-r="'+r+'">'+dot+'<div class="rno">'+r+'R</div><div class="dl">'+esc(rc.deadline||"")+'</div></div>';
-  }).join("")+'</div><div class="legend-note">右上のドット＝荒れ指数（<span class="lv-高">高</span>/<span class="lv-中">中</span>/<span class="lv-低">低</span>）</div>';
+  }).join("");
+  var legend=anyDot
+    ?'<div class="legend-note">右上のドット＝荒れ指数（<span class="lv-高">高</span>/<span class="lv-中">中</span>/<span class="lv-低">低</span>）</div>'
+    :'<div class="legend-note">荒れ指数は当日分の生成後（毎朝）に各Rへ表示されます。</div>';
+  app.innerHTML='<div class="rgrid">'+grid+'</div>'+legend;
   document.getElementById("back").onclick=function(e){e.preventDefault();view={page:"venues",sort:view.sort};render();};
   Array.prototype.forEach.call(app.querySelectorAll(".rbtn"),function(el){
     el.onclick=function(){ view={page:"race",key:view.key,rno:parseInt(el.getAttribute("data-r")),sort:view.sort}; render(); window.scrollTo(0,0); };

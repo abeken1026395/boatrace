@@ -4,6 +4,10 @@ on:
   schedule:
     # 出走表更新(UTC23:30)の後。UTC23:45 = JST8:45
     - cron: '45 23 * * *'
+  # 出走表が更新されたら追随（早朝など当日分未生成のラグを解消）
+  workflow_run:
+    workflows: ["出走表データ自動更新"]
+    types: [completed]
   workflow_dispatch:
 
 concurrency:
