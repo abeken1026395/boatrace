@@ -216,11 +216,12 @@ function render(){
     var fn=parseInt(g(row,"F数"))||0;
     var local=g(row,"支部")===HOME_BRANCH[view.jcd];
     var name=g(row,"氏名").replace(/　+/g,"　");
+    var toban=g(row,"登録番号");
     return '<div class="boat"><div class="lane-bar" style="background:'+lc[0]+'"></div><div class="boat-body">'
       +'<div class="boat-top">'
       +'<span class="lane-num" style="background:'+lc[0]+';color:'+lc[1]+';'+(lane===1?'border:1px solid #445;':'')+(lane===2?'border:1px solid #445;':'')+'">'+lane+'</span>'
       +'<span class="klass k-'+esc(kl)+'">'+esc(kl)+'</span>'
-      +'<span class="pname">'+esc(name)+'</span>'
+      +(toban?'<a class="pname" href="../players/?toban='+esc(toban)+'" style="color:inherit;text-decoration:none;">'+esc(name)+'</a>':'<span class="pname">'+esc(name)+'</span>')
       +(local?'<span class="badge-local">地元</span>':'')
       +(fn>0?'<span class="badge-f">F'+fn+'</span>':'')
       +'</div>'
