@@ -497,7 +497,7 @@ def main():
         elif any(t['w'] >= 4 for t in threats):
             # 外の仕掛けを担う筆頭＝threatsのw>=4で最も脅威度の高い艇
             out_thr = sorted([t for t in threats if t['w'] >= 4], key=lambda x: -x['w'])
-            saten = "死角は外の仕掛け。Sが一枚決まれば隊形が乱れ、内の信頼は一気に揺らぐ。"
+            saten = "外の仕掛けは一考。Sが決まれば隊形は乱れるが、そのまま連まで届くかは別問題。"
             skw = out_thr[0]['w']; sid = 'D12'
         else:
             # 内が壁を作る＝主役の①が残る想定。死角艇は①
