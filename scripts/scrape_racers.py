@@ -172,12 +172,41 @@ def parse_racelist(html, jcd, venue, hd, rno):
                 for j in range(min(3, len(td_))):
                     toti[j] = td_[j]
 
+        # モーター(info_idx+4)/ボート(info_idx+5): "No 2連率 3連率" の3値
+        motor_no = motor_2rt = motor_3rt = ""
+        boat_no = boat_2rt = boat_3rt = ""
+        if info_idx is not None:
+            if info_idx + 4 < len(tds):
+                td_m = tds[info_idx + 4]
+                txt_m = td_m.get_text(" ", strip=True)
+                m_no = re.match(r"^\s*(\d+)", txt_m)
+                if m_no:
+                    motor_no = m_no.group(1)
+                m_dec = cell_decimals(td_m)
+                if len(m_dec) >= 1:
+                    motor_2rt = m_dec[0]
+                if len(m_dec) >= 2:
+                    motor_3rt = m_dec[1]
+            if info_idx + 5 < len(tds):
+                td_b = tds[info_idx + 5]
+                txt_b = td_b.get_text(" ", strip=True)
+                b_no = re.match(r"^\s*(\d+)", txt_b)
+                if b_no:
+                    boat_no = b_no.group(1)
+                b_dec = cell_decimals(td_b)
+                if len(b_dec) >= 1:
+                    boat_2rt = b_dec[0]
+                if len(b_dec) >= 2:
+                    boat_3rt = b_dec[1]
+
         rec = {
             "場名": venue, "場コード": jcd, "開催日": hd, "レース": "{}R".format(rno),
             "枠": waku, "登録番号": toban, "級別": rank, "氏名": name,
             "F数": f_num, "L数": l_num, "平均ST": avg_st,
             "全国勝率": zen[0], "全国2連率": zen[1], "全国3連率": zen[2],
             "当地勝率": toti[0], "当地2連率": toti[1], "当地3連率": toti[2],
+            "モーターNo": motor_no, "モーター2連率": motor_2rt, "モーター3連率": motor_3rt,
+            "ボートNo": boat_no, "ボート2連率": boat_2rt, "ボート3連率": boat_3rt,
             "支部": shibu, "出身": home, "年齢": age, "締切時刻": deadline,
             "節名": setsu, "企画名": kikaku, "日目": nichime,
         }
@@ -248,7 +277,10 @@ def find_open_date_and_scrape(jcd, venue):
 CSV_COLUMNS = [
     "場名", "場コード", "開催日", "レース", "枠", "登録番号", "級別", "氏名",
     "F数", "L数", "平均ST", "全国勝率", "全国2連率", "全国3連率",
-    "当地勝率", "当地2連率", "当地3連率", "支部", "出身", "年齢", "締切時刻",
+    "当地勝率", "当地2連率", "当地3連率",
+    "モーターNo", "モーター2連率", "モーター3連率",
+    "ボートNo", "ボート2連率", "ボート3連率",
+    "支部", "出身", "年齢", "締切時刻",
     "節名", "企画名", "日目",
 ]
 
