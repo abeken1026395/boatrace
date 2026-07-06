@@ -35,12 +35,13 @@ JST = datetime.timezone(datetime.timedelta(hours=9))
 
 
 def target_date():
-    """対象とする開催日を返す。GitHub ActionsはUTCなのでJSTに直して判定する。
-    JSTで18時以降の夜の実行は翌日分を予習対象にする。日中の実行は当日分。"""
-    now = datetime.datetime.now(JST)
-    if now.hour >= 18:
-        return now.date() + datetime.timedelta(days=1)
-    return now.date()
+    """基準日=当日(JST)を返す。日付が変わるまで当日扱い（ミッドナイト場考慮）。"""
+    return datetime.datetime.now(JST).date()
+
+def target_dates():
+    """取得候補日リスト。当日と翌日の2日を対象にする（ナイター/デイ混在対策）。"""
+    today = target_date()
+    return [today, today + datetime.timedelta(days=1)]
 
 OUTPUT_DIR = os.path.join("docs", "racers")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -50,6 +51,74 @@ TEMPLATE_PATH = os.path.join(SCRIPT_DIR, "template_racers.html")
 def cell_decimals(td):
     """td内の小数(X.XX)を出現順に返す"""
     return re.findall(r"\d+\.\d+", td.get_text(" ", strip=True))
+
+
+# 今節成績（Phase2）
+SHUSSETSU_MAX_DAYS = 6
+_FW2HW = str.maketrans("０１２３４５６７８９", "0123456789")
+
+
+def _hw(s):
+    """全角数字→半角。前後空白除去。"""
+    return (s or "").translate(_FW2HW).strip()
+
+
+def parse_shussetsu_grid(trs):
+    """選手tbody（4つの<tr>）から今節成績を「実施レース」の並びで返す。
+    公式racelistの今節成績は 14列×4行のグリッドで、
+      tr0 の非rowspanセル = レースNo, tr1 = 進入コース, tr2 = ST,
+      tr3 = 着順（全角数字＋raceresultリンク hd=YYYYMMDD）。
+    列は「日」ではなく「実施レース」単位。日付は着セルのリンク hd から取る。
+    戻り値: [{'hd': 'YYYYMMDD', 'rno': '6', 'course': '5', 'st': '.18', 'chaku': '6'}, ...]
+    構造不一致（4行未満等）は空リスト（防御）。"""
+    if len(trs) < 4:
+        return []
+    rowA = [td.get_text(" ", strip=True)
+            for td in trs[0].find_all("td", recursive=False) if not td.has_attr("rowspan")]
+    rowB = [td.get_text(" ", strip=True) for td in trs[1].find_all("td", recursive=False)]
+    rowC = [td.get_text(" ", strip=True) for td in trs[2].find_all("td", recursive=False)]
+    tds3 = trs[3].find_all("td", recursive=False)
+    rowD = [td.get_text(" ", strip=True) for td in tds3]
+    rowHd = []
+    for td in tds3:
+        a = td.find("a", href=True)
+        dm = re.search(r"hd=(\d{8})", a["href"]) if a else None
+        rowHd.append(dm.group(1) if dm else "")
+
+    n = min(len(rowA), len(rowB), len(rowC), len(rowD))
+    out = []
+    for i in range(n):
+        rno = _hw(rowA[i])
+        chaku = _hw(rowD[i])
+        hd = rowHd[i]
+        # レースNo・着順・日付が揃った列だけが実施レース。未実施/空列はスキップ。
+        if not re.match(r"^\d{1,2}$", rno) or not re.match(r"^\d{1,2}$", chaku) or not hd:
+            continue
+        out.append({"hd": hd, "rno": rno, "course": _hw(rowB[i]),
+                    "st": rowC[i].strip(), "chaku": chaku})
+    return out
+
+
+def shussetsu_days(results, meeting_start, max_days=SHUSSETSU_MAX_DAYS):
+    """実施レースのリストを日別セル文字列（最大6日）に集約する。
+    day_index = (開催日 - 節初日).days（連続開催前提）。
+    セル例: '6R/5/.18/6'（複数走は半角スペース区切りで併記）。範囲外/空は ''。"""
+    days = [""] * max_days
+    if not meeting_start:
+        return days
+    byday = {}
+    for r in results:
+        try:
+            d = datetime.datetime.strptime(r["hd"], "%Y%m%d").date()
+        except Exception:
+            continue
+        di = (d - meeting_start).days
+        if 0 <= di < max_days:
+            byday.setdefault(di, []).append(r)
+    for di, lst in byday.items():
+        days[di] = " ".join(
+            "{}R/{}/{}/{}".format(x["rno"], x["course"], x["st"], x["chaku"]) for x in lst)
+    return days
 
 
 def parse_deadlines(soup):
@@ -107,7 +176,14 @@ def parse_racelist(html, jcd, venue, hd, rno):
     setsu, kikaku = parse_title(soup)
     nichime = parse_nichime(soup, hd)
 
-    for tr in soup.find_all("tr"):
+    # 各選手は1つの<tbody>（4つの<tr>: レースNo/進入/ST/着）で構成される。
+    # tr0 に枠/写真/情報/成績/モーター/ボートが rowspan で入る。
+    pending = []  # (rec, results) を集めて後段で日別集約
+    for tbody in soup.find_all("tbody"):
+        trs = tbody.find_all("tr", recursive=False)
+        if not trs:
+            continue
+        tr = trs[0]
         tds = tr.find_all("td")
         if len(tds) < 8:
             continue
@@ -199,6 +275,12 @@ def parse_racelist(html, jcd, venue, hd, rno):
                 if len(b_dec) >= 2:
                     boat_3rt = b_dec[1]
 
+        # 今節成績のグリッド（tbody4行）。構造不一致でも壊れないよう例外は握りつぶす。
+        try:
+            results = parse_shussetsu_grid(trs)
+        except Exception:
+            results = []
+
         rec = {
             "場名": venue, "場コード": jcd, "開催日": hd, "レース": "{}R".format(rno),
             "枠": waku, "登録番号": toban, "級別": rank, "氏名": name,
@@ -207,9 +289,27 @@ def parse_racelist(html, jcd, venue, hd, rno):
             "当地勝率": toti[0], "当地2連率": toti[1], "当地3連率": toti[2],
             "モーターNo": motor_no, "モーター2連率": motor_2rt, "モーター3連率": motor_3rt,
             "ボートNo": boat_no, "ボート2連率": boat_2rt, "ボート3連率": boat_3rt,
+            "1日目成績": "", "2日目成績": "", "3日目成績": "",
+            "4日目成績": "", "5日目成績": "", "6日目成績": "",
             "支部": shibu, "出身": home, "年齢": age, "締切時刻": deadline,
             "節名": setsu, "企画名": kikaku, "日目": nichime,
         }
+        pending.append((rec, results))
+
+    # 節初日 = 全選手の実施レース日付の最小（連続開催前提で day_index を確定）。
+    all_dates = []
+    for _rec, results in pending:
+        for r in results:
+            try:
+                all_dates.append(datetime.datetime.strptime(r["hd"], "%Y%m%d").date())
+            except Exception:
+                pass
+    meeting_start = min(all_dates) if all_dates else None
+
+    for rec, results in pending:
+        days = shussetsu_days(results, meeting_start)
+        for k in range(SHUSSETSU_MAX_DAYS):
+            rec["{}日目成績".format(k + 1)] = days[k]
         records.append(rec)
 
     # 枠番を出現順に振り直す（この関数は1レース分なので、出現順=枠順）
@@ -235,43 +335,33 @@ def get_open_venues(hd):
         return None
 
 
-def find_open_date_and_scrape(jcd, venue):
-    # 本日のみを対象にする。非開催場の前回/次節データを誤って拾わないため、
-    # 過去日(-1等)や先の日付は探さない。本日のページに出走表が無ければ「開催なし」。
-    today = target_date()
-    candidates = [0]
-    for sign in candidates:
-        d = today + datetime.timedelta(days=sign)
-        hd = d.strftime("%Y%m%d")
-        url = "https://www.boatrace.jp/owpc/pc/race/racelist?rno=1&jcd={}&hd={}".format(jcd, hd)
-        try:
-            resp = requests.get(url, headers=HEADERS, timeout=12)
-            if resp.status_code != 200:
-                continue
-            recs = parse_racelist(resp.text, jcd, venue, hd, 1)
-            if not recs:
-                continue
-            all_recs = list(recs)
-            # 2R〜12Rを並列取得（直列＋sleepがボトルネックだったため）。
-            # 1場あたり最大6並列。レース順は後で関係ないが、枠番は各レース内で振るため問題なし。
-            def fetch_race(rno):
-                u = "https://www.boatrace.jp/owpc/pc/race/racelist?rno={}&jcd={}&hd={}".format(rno, jcd, hd)
-                try:
-                    r = requests.get(u, headers=HEADERS, timeout=12)
-                    if r.status_code == 200:
-                        return parse_racelist(r.text, jcd, venue, hd, rno)
-                except Exception:
-                    pass
-                return []
-            from concurrent.futures import ThreadPoolExecutor
-            with ThreadPoolExecutor(max_workers=6) as ex:
-                for recs_r in ex.map(fetch_race, range(2, 13)):
-                    all_recs.extend(recs_r)
-            return hd, all_recs
-        except Exception:
-            continue
-        time.sleep(0.3)
-    return None, []
+def find_open_date_and_scrape(jcd, venue, hd):
+    """指定した開催日 hd で1R〜12Rを取得。取れなければ (None, [])。"""
+    url = "https://www.boatrace.jp/owpc/pc/race/racelist?rno=1&jcd={}&hd={}".format(jcd, hd)
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=12)
+        if resp.status_code != 200:
+            return None, []
+        recs = parse_racelist(resp.text, jcd, venue, hd, 1)
+        if not recs:
+            return None, []
+        all_recs = list(recs)
+        def fetch_race(rno):
+            u = "https://www.boatrace.jp/owpc/pc/race/racelist?rno={}&jcd={}&hd={}".format(rno, jcd, hd)
+            try:
+                r = requests.get(u, headers=HEADERS, timeout=12)
+                if r.status_code == 200:
+                    return parse_racelist(r.text, jcd, venue, hd, rno)
+            except Exception:
+                pass
+            return []
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=6) as ex:
+            for recs_r in ex.map(fetch_race, range(2, 13)):
+                all_recs.extend(recs_r)
+        return hd, all_recs
+    except Exception:
+        return None, []
 
 
 CSV_COLUMNS = [
@@ -280,6 +370,7 @@ CSV_COLUMNS = [
     "当地勝率", "当地2連率", "当地3連率",
     "モーターNo", "モーター2連率", "モーター3連率",
     "ボートNo", "ボート2連率", "ボート3連率",
+    "1日目成績", "2日目成績", "3日目成績", "4日目成績", "5日目成績", "6日目成績",
     "支部", "出身", "年齢", "締切時刻",
     "節名", "企画名", "日目",
 ]
@@ -305,28 +396,33 @@ def _race_num(v):
 
 
 def merge_with_existing(new_df, csv_path):
-    """同一開催日なら既存CSVに新規取得分をマージ。開催日が進んだら作り直す。
-    - 新規データの最新開催日(base_date)を採用
-    - 既存データのうち base_date と一致する行だけ残す(古い日付は破棄=溜め込まない)
-    - キー「場コード+レース+枠」で重複排除し、新規取得を優先(keep='last')
+    """当日+翌日の2日分を保持するマージ。
+    - keep_dates は target_dates() の当日+翌日で固定（新規で取れなかった日も既存分を保持）
+    - キー「開催日+場コード+レース+枠」で重複排除し、新規取得を優先(keep='last')
+    - 過去日(<当日)は破棄
     """
-    # 新規データの基準日(通常は単一。混在時は最新を採用)
-    new_dates = sorted([d for d in new_df["開催日"].astype(str).unique() if d])
-    if not new_dates:
-        return new_df
-    base_date = new_dates[-1]
-    new_same = new_df[new_df["開催日"].astype(str) == base_date].copy()
+    # 保持対象日は取得成功可否によらず「当日+翌日」で固定
+    keep_dates = set(d.strftime("%Y%m%d") for d in target_dates())
+
+    if new_df is None or len(new_df) == 0:
+        new_same = pd.DataFrame(columns=CSV_COLUMNS)
+    else:
+        new_same = new_df[new_df["開催日"].astype(str).isin(keep_dates)].copy()
 
     old_df = load_existing_csv(csv_path)
-    if old_df is not None:
-        old_same = old_df[old_df["開催日"].astype(str) == base_date].copy()
+    if old_df is not None and len(old_df) > 0:
+        old_same = old_df[old_df["開催日"].astype(str).isin(keep_dates)].copy()
     else:
-        old_same = new_same.iloc[0:0].copy()
+        old_same = pd.DataFrame(columns=CSV_COLUMNS)
 
     # 旧→新の順に連結し、同一キーは後勝ち(新規優先)で残す
     combined = pd.concat([old_same, new_same], ignore_index=True)
+    if len(combined) == 0:
+        return combined
+
     combined["__key"] = (
-        combined["場コード"].astype(str) + "_"
+        combined["開催日"].astype(str) + "_"
+        + combined["場コード"].astype(str) + "_"
         + combined["レース"].astype(str) + "_"
         + combined["枠"].astype(str)
     )
@@ -338,56 +434,60 @@ def merge_with_existing(new_df, csv_path):
             combined[c] = ""
     combined = combined[CSV_COLUMNS]
 
-    # 見やすさのため 場コード→レース番号→枠 でソート
+    # 開催日→場コード→レース番号→枠 でソート
     combined["__r"] = combined["レース"].map(_race_num)
     combined["__w"] = pd.to_numeric(combined["枠"], errors="coerce").fillna(0).astype(int)
     combined = combined.sort_values(
-        ["場コード", "__r", "__w"], kind="stable"
+        ["開催日", "場コード", "__r", "__w"], kind="stable"
     ).drop(columns=["__r", "__w"]).reset_index(drop=True)
 
-    kept_venues = sorted(combined["場コード"].astype(str).unique())
-    print("マージ後 開催日={} / {}場 ({}件)".format(
-        base_date, len(kept_venues), len(combined)))
+    print("マージ後 保持日={} / {}件".format(
+        sorted(keep_dates), len(combined)))
     return combined
 
 
 def main():
-    print("出走表スクレイパー v3 (自動実行)")
+    print("出走表スクレイパー v4 (2日分取得: 当日+翌日)")
     print("実行日時:", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     print()
-    today_hd = target_date().strftime("%Y%m%d")
-    open_venues = get_open_venues(today_hd)
-    if open_venues:
-        print("本日開催場: {} 場 ({})".format(len(open_venues), " ".join(sorted(open_venues))))
-    else:
-        print("開催場リスト取得失敗 → 全場を試行（従来動作）")
+
+    dates = target_dates()
+    open_by_date = {}  # hd -> set(jcd)
+    for d in dates:
+        hd = d.strftime("%Y%m%d")
+        ov = get_open_venues(hd)
+        open_by_date[hd] = ov
+        if ov:
+            print("{}開催場: {} 場 ({})".format(hd, len(ov), " ".join(sorted(ov))))
+        else:
+            print("{}開催場リスト取得失敗".format(hd))
     print()
+
     all_records = []
-    for jcd, name in VENUES.items():
-        # 開催場リストが取れていて、そこに無い場はスキップ（非開催のすり替わりを防止）
-        if open_venues is not None and jcd not in open_venues:
-            print("[{}] {} ... 非開催（スキップ）".format(jcd, name))
-            continue
-        print("[{}] {} ...".format(jcd, name), end=" ", flush=True)
-        hd, records = find_open_date_and_scrape(jcd, name)
-        if not records:
-            print("開催なし")
-            continue
-        all_records.extend(records)
-        print("OK ({} 名 / {})".format(len(records), hd))
+    for d in dates:
+        hd = d.strftime("%Y%m%d")
+        ov = open_by_date.get(hd)
+        for jcd, name in VENUES.items():
+            if ov is not None and jcd not in ov:
+                continue
+            print("[{}][{}] {} ...".format(hd, jcd, name), end=" ", flush=True)
+            got_hd, records = find_open_date_and_scrape(jcd, name, hd)
+            if not records:
+                print("なし")
+                continue
+            all_records.extend(records)
+            print("OK ({}名)".format(len(records)))
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     csv_path = os.path.join(OUTPUT_DIR, "racers_today.csv")
 
     if not all_records:
-        # 1場も取れなかった回は既存CSVを保持して終了（消さない）
-        print("\n本日開催の出走表が取得できませんでした。既存CSVを保持します。")
+        print("\n出走表が取得できませんでした。既存CSVを保持します。")
         if os.path.exists(csv_path) or os.path.exists(os.path.join(OUTPUT_DIR, "index.html")):
             return
         df = pd.DataFrame(columns=CSV_COLUMNS)
     else:
         new_df = pd.DataFrame(all_records)
-        # 既存CSVと同一開催日ならマージ（ナイター等、取れなかった場を消さない）
         df = merge_with_existing(new_df, csv_path)
 
     df.to_csv(csv_path, index=False, encoding="utf-8-sig")
