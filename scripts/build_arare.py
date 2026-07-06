@@ -65,32 +65,31 @@ def load_motor_map(rows):
 
 
 def load_wind_map(path):
-    """場コード -> {hh(int): wind(float)} 当日分。無ければ空。"""
+    """{開催日'YYYYMMDD': {場コード: {hh(int): wind(float)}}}。無ければ空。
+    出走表が当日+翌日の2日分を持つため、日付ごとに保持してレースの開催日で引く。"""
     if not os.path.exists(path):
         return {}
     with open(path, encoding="utf-8") as f:
         d = json.load(f)
-    today = datetime.datetime.now(
-        datetime.timezone(datetime.timedelta(hours=9))
-    ).strftime("%Y-%m-%d")
     out = {}
     for jcd, s in d.get("stadiums", {}).items():
-        hh = {}
+        jcd = str(jcd).zfill(2)
         for h in s.get("hourly", []):
             t = h.get("time", "")
-            if t.startswith(today) and len(t) >= 13:
-                hh[int(t[11:13])] = h.get("wind")
-        out[str(jcd).zfill(2)] = hh
+            if len(t) < 13:
+                continue
+            ymd = t[:10].replace("-", "")   # 2026-07-07 -> 20260707
+            out.setdefault(ymd, {}).setdefault(jcd, {})[int(t[11:13])] = h.get("wind")
     return out
 
 
-def wind_at(wind_map, jcd, deadline):
-    """締切'HH:MM'の時のwind。無ければNone。"""
+def wind_at(wind_map, jcd, hd, deadline):
+    """締切'HH:MM'（開催日 hd）の時のwind。無ければNone。"""
     m = re.match(r"(\d{1,2}):", str(deadline or ""))
     if not m:
         return None
     hh = int(m.group(1))
-    hh_map = wind_map.get(jcd, {})
+    hh_map = wind_map.get(str(hd), {}).get(jcd, {})
     if hh in hh_map:
         return hh_map[hh]
     # 近い正時にフォールバック
@@ -194,24 +193,26 @@ def main():
     motor_map = load_motor_map(load_csv(MOTORS))
     wind_map = load_wind_map(WEATHER)
 
-    # 場×R でまとめる
+    # 開催日×場×R でまとめる（2日分保持でも場×Rが衝突しないよう開催日を含める）
     races = {}
     for r in racers:
         jcd = str(r.get("場コード", "")).zfill(2)
         rno = re.sub(r"\D", "", str(r.get("レース", "")))
+        hd = str(r.get("開催日", "")).strip()
         if not jcd or not rno:
             continue
-        races.setdefault((jcd, rno), []).append(r)
+        races.setdefault((hd, jcd, rno), []).append(r)
 
     out = {}
-    for (jcd, rno), boats in races.items():
+    for (hd, jcd, rno), boats in races.items():
         boats.sort(key=lambda b: int(str(b.get("枠", "0")).strip() or 0))
         deadline = str(boats[0].get("締切時刻", "")).strip()
-        wind = wind_at(wind_map, jcd, deadline)
+        wind = wind_at(wind_map, jcd, hd, deadline)
         score, factors = eval_race(boats, jcd, motor_map, wind)
-        key = "{}_{}".format(jcd, rno)
+        key = "{}_{}_{}".format(jcd, hd, rno) if hd else "{}_{}".format(jcd, rno)
         out[key] = {
             "jcd": jcd,
+            "hd": hd,
             "venue": STADIUM.get(jcd, ("",))[0],
             "rno": int(rno),
             "score": score,
