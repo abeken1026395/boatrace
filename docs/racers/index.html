@@ -47,6 +47,8 @@ header .sub { font-size:11px; color:#8a94a3; margin-top:4px; }
 .lv-高 { color:#ff6b6b; font-weight:bold; }
 .lv-中 { color:#ffd166; font-weight:bold; }
 .lv-低 { color:#69db7c; font-weight:bold; }
+.date-head { font-size:13px; font-weight:bold; color:#ffd166; margin:16px 2px 4px; padding-bottom:4px; border-bottom:1px solid #2a3548; }
+.date-head:first-child { margin-top:6px; }
 
 /* 艇カード */
 .boat { background:#121c28; border:1px solid #1f2b3a; border-radius:10px; margin-top:8px; display:flex; overflow:hidden; }
@@ -59,6 +61,7 @@ header .sub { font-size:11px; color:#8a94a3; margin-top:4px; }
 .pname { font-size:16px; font-weight:bold; color:#fff; }
 .badge-local { font-size:10px; color:#0b1219; background:#ffd166; border-radius:4px; padding:1px 5px; font-weight:bold; flex:none; }
 .badge-f { font-size:10px; color:#fff; background:#c9184a; border-radius:4px; padding:1px 5px; font-weight:bold; flex:none; }
+.badge-detail { display:inline-block; font-size:9px; padding:1px 5px; border-radius:8px; background:rgba(126,200,255,0.14); color:#7ec8ff; margin-left:5px; letter-spacing:0.5px; vertical-align:middle; font-weight:normal; flex:none; }
 .boat-sub { font-size:11px; color:#8a94a3; margin-top:2px; }
 .stats { display:flex; gap:10px; margin-top:7px; flex-wrap:wrap; }
 .stat { line-height:1.35; min-width:70px; }
@@ -93,18 +96,19 @@ var LANE_COLOR = {1:["#ffffff","#111111"],2:["#15181c","#ffffff"],3:["#e63946","
 var col = {}; RAW.columns.forEach(function(c,i){ col[c]=i; });
 function g(row,name){ var i=col[name]; return i===undefined ? "" : String(row[i]==null?"":row[i]); }
 
-/* 場ごとに整理 */
-var venues = {}; /* jcd -> {name, setsumei, hiome, races: {rno -> {deadline, kikaku, boats:[]}}} */
+/* 場ごとに整理（場コード+開催日で一意化：ナイター/デイ混在対応） */
+var venues = {};
 RAW.data.forEach(function(row){
-  var jcd=g(row,"場コード"), name=g(row,"場名");
-  if(!venues[jcd]) venues[jcd]={name:name, setsu:g(row,"節名"), day:g(row,"日目"), hd:g(row,"開催日"), races:{}};
+  var jcd=g(row,"場コード"), name=g(row,"場名"), hd=g(row,"開催日");
+  var key=jcd+"_"+hd;
+  if(!venues[key]) venues[key]={key:key, jcd:jcd, name:name, setsu:g(row,"節名"), day:g(row,"日目"), hd:hd, races:{}};
   var rno=parseInt(g(row,"レース"));
-  if(!venues[jcd].races[rno]) venues[jcd].races[rno]={deadline:g(row,"締切時刻"), kikaku:g(row,"企画名"), boats:[]};
-  venues[jcd].races[rno].boats.push(row);
+  if(!venues[key].races[rno]) venues[key].races[rno]={deadline:g(row,"締切時刻"), kikaku:g(row,"企画名"), boats:[]};
+  venues[key].races[rno].boats.push(row);
 });
-Object.keys(venues).forEach(function(j){
-  Object.keys(venues[j].races).forEach(function(r){
-    venues[j].races[r].boats.sort(function(a,b){ return parseInt(g(a,"枠"))-parseInt(g(b,"枠")); });
+Object.keys(venues).forEach(function(k){
+  Object.keys(venues[k].races).forEach(function(r){
+    venues[k].races[r].boats.sort(function(a,b){ return parseInt(g(a,"枠"))-parseInt(g(b,"枠")); });
   });
 });
 
@@ -112,7 +116,7 @@ var arare=null, weather=null;
 fetch("../data/arare.json").then(function(r){return r.json();}).then(function(j){arare=j; rerender();}).catch(function(){});
 fetch("../data/weather.json").then(function(r){return r.json();}).then(function(j){weather=j; rerender();}).catch(function(){});
 
-var view={page:"venues", jcd:null, rno:null};
+var view={page:"venues", key:null, rno:null};
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function nowJST(){ return new Date(Date.now()+9*3600*1000); } /* UTC基準にJSTオフセットを足しgetUTC系で読む */
 function isClosed(hd,dl){
@@ -153,27 +157,45 @@ function findWind(jcd,hd,dl){
 function render(){
   var app=document.getElementById("app"), crumb=document.getElementById("crumb");
   document.getElementById("updated").textContent="更新: "+(RAW.updated||"-")+"｜出典: BOATRACE公式出走表";
-  var jcds=Object.keys(venues).sort();
-  if(jcds.length===0){ app.innerHTML='<div class="empty">本日の出走表データがありません</div>'; crumb.innerHTML=""; return; }
+  var keys=Object.keys(venues);
+  if(keys.length===0){ app.innerHTML='<div class="empty">本日の出走表データがありません</div>'; crumb.innerHTML=""; return; }
 
   if(view.page==="venues"){
     crumb.innerHTML="場を選択";
-    app.innerHTML=jcds.map(function(j){
-      var v=venues[j];
-      var rs=Object.keys(v.races).map(Number).sort(function(a,b){return a-b;});
-      var first=v.races[rs[0]], last=v.races[rs[rs.length-1]];
-      return '<div class="venue-card" data-j="'+j+'">'
-        +'<div class="venue-name">'+esc(v.name)+'</div>'
-        +'<div class="venue-meta">'+esc(v.setsu)+'<br>'+rs.length+'R｜'+esc(first.deadline)+'〜'+esc(last.deadline)+'</div>'
-        +'<div class="venue-day">'+esc(v.day)+'</div></div>';
-    }).join("");
+    // 開催日別にグルーピング
+    var byDate={};
+    keys.forEach(function(k){
+      var v=venues[k];
+      if(!byDate[v.hd]) byDate[v.hd]=[];
+      byDate[v.hd].push(v);
+    });
+    var dates=Object.keys(byDate).sort();
+    var todayJST=(function(){ var n=nowJST(); return n.getUTCFullYear()+("0"+(n.getUTCMonth()+1)).slice(-2)+("0"+n.getUTCDate()).slice(-2); })();
+    var html="";
+    dates.forEach(function(hd){
+      var list=byDate[hd].sort(function(a,b){ return a.jcd<b.jcd?-1:1; });
+      var mm=hd.slice(4,6), dd=hd.slice(6,8);
+      var y=parseInt(hd.slice(0,4)), mo=parseInt(mm)-1, da=parseInt(dd);
+      var dow=["日","月","火","水","木","金","土"][new Date(y,mo,da).getDay()];
+      var label=(hd===todayJST?"本日":"翌日")+" "+mm+"/"+dd+"("+dow+")";
+      html+='<div class="date-head">'+esc(label)+'</div>';
+      html+=list.map(function(v){
+        var rs=Object.keys(v.races).map(Number).sort(function(a,b){return a-b;});
+        var first=v.races[rs[0]], last=v.races[rs[rs.length-1]];
+        return '<div class="venue-card" data-k="'+esc(v.key)+'">'
+          +'<div class="venue-name">'+esc(v.name)+'</div>'
+          +'<div class="venue-meta">'+esc(v.setsu)+'<br>'+rs.length+'R｜'+esc(first.deadline)+'〜'+esc(last.deadline)+'</div>'
+          +'<div class="venue-day">'+esc(v.day)+'</div></div>';
+      }).join("");
+    });
+    app.innerHTML=html;
     Array.prototype.forEach.call(app.querySelectorAll(".venue-card"),function(el){
-      el.onclick=function(){ view={page:"races",jcd:el.getAttribute("data-j"),rno:null}; render(); window.scrollTo(0,0); };
+      el.onclick=function(){ view={page:"races",key:el.getAttribute("data-k"),rno:null}; render(); window.scrollTo(0,0); };
     });
     return;
   }
 
-  var v=venues[view.jcd];
+  var v=venues[view.key];
   if(!v){ view={page:"venues"}; render(); return; }
 
   if(view.page==="races"){
@@ -185,25 +207,25 @@ function render(){
     }).join("")+'</div>';
     document.getElementById("back").onclick=function(e){ e.preventDefault(); view={page:"venues"}; render(); };
     Array.prototype.forEach.call(app.querySelectorAll(".rbtn"),function(el){
-      el.onclick=function(){ view={page:"race",jcd:view.jcd,rno:parseInt(el.getAttribute("data-r"))}; render(); window.scrollTo(0,0); };
+      el.onclick=function(){ view={page:"race",key:view.key,rno:parseInt(el.getAttribute("data-r"))}; render(); window.scrollTo(0,0); };
     });
     return;
   }
 
   /* page === race */
   var rc=v.races[view.rno];
-  if(!rc){ view={page:"races",jcd:view.jcd}; render(); return; }
+  if(!rc){ view={page:"races",key:view.key}; render(); return; }
   crumb.innerHTML='<a href="#" id="back0">場一覧</a> ＞ <a href="#" id="back1">'+esc(v.name)+'</a> ＞ '+view.rno+'R';
 
   var html='<div class="race-head"><div class="line1"><span class="rt">'+esc(v.name)+' '+view.rno+'R</span><span class="kikaku">'+esc(rc.kikaku)+'</span></div>'
     +'<div class="dl">締切 '+esc(rc.deadline||"-")+'｜'+esc(v.setsu)+' '+esc(v.day)+'</div></div>';
 
-  var ar=findArare(view.jcd,view.rno);
+  var ar=findArare(v.jcd,view.rno);
   if(ar){
     html+='<div class="panel panel-arare"><div class="ttl">荒れ指数 '+esc(ar.score)+'/'+esc((arare&&arare.max_score)||"-")+'（<span class="lv-'+esc(ar.level)+'">'+esc(ar.level)+'</span>）</div>'
       +'<ul>'+(ar.factors||[]).map(function(f){return '<li>'+esc(f)+'</li>';}).join("")+'</ul></div>';
   }
-  var wd=findWind(view.jcd,v.hd,rc.deadline);
+  var wd=findWind(v.jcd,v.hd,rc.deadline);
   if(wd){
     html+='<div class="panel panel-wind"><div class="ttl">締切時刻の風予報</div>'
       +esc(wd.dir)+' '+esc(wd.wind)+'m｜'+esc(wd.wx)+'（'+esc(String(wd.time).replace("T"," ").slice(5))+' 時点の予報）</div>';
@@ -216,14 +238,14 @@ function render(){
     var zk=parseFloat(g(row,"全国勝率")), tk=parseFloat(g(row,"当地勝率"));
     var hot=!isNaN(zk)&&!isNaN(tk)&&tk>zk;
     var fn=parseInt(g(row,"F数"))||0;
-    var local=g(row,"支部")===HOME_BRANCH[view.jcd];
+    var local=g(row,"支部")===HOME_BRANCH[v.jcd];
     var name=g(row,"氏名").replace(/　+/g,"　");
     var toban=g(row,"登録番号");
     return '<div class="boat"><div class="lane-bar" style="background:'+lc[0]+'"></div><div class="boat-body">'
       +'<div class="boat-top">'
       +'<span class="lane-num" style="background:'+lc[0]+';color:'+lc[1]+';'+(lane===1?'border:1px solid #445;':'')+(lane===2?'border:1px solid #445;':'')+'">'+lane+'</span>'
       +'<span class="klass k-'+esc(kl)+'">'+esc(kl)+'</span>'
-      +(toban?'<a class="pname" href="../players/?toban='+esc(toban)+'" style="color:inherit;text-decoration:none;">'+esc(name)+'</a>':'<span class="pname">'+esc(name)+'</span>')
+      +(toban?'<a class="pname" href="../players/?toban='+esc(toban)+'" style="color:inherit;text-decoration:none;">'+esc(name)+'<span class="badge-detail">詳細</span></a>':'<span class="pname">'+esc(name)+'</span>')
       +(local?'<span class="badge-local">地元</span>':'')
       +(fn>0?'<span class="badge-f">F'+fn+'</span>':'')
       +'</div>'
@@ -238,7 +260,7 @@ function render(){
 
   app.innerHTML=html;
   document.getElementById("back0").onclick=function(e){ e.preventDefault(); view={page:"venues"}; render(); };
-  document.getElementById("back1").onclick=function(e){ e.preventDefault(); view={page:"races",jcd:view.jcd}; render(); };
+  document.getElementById("back1").onclick=function(e){ e.preventDefault(); view={page:"races",key:view.key}; render(); };
 }
 function rerender(){ render(); }
 render();
