@@ -303,11 +303,11 @@ def main():
         elif in_weak and diff <= th_ba and o4:
             w0 = o4[0]; kt0 = _kt_of(w0['w'])
             if kt0 == 'makuri' and ba in NARROW:
-                headline = f"イン薄く外が主役。{K[w0['w']-1]}{w0['nm']}のまくりが狭水面と噛み合う"; hid = 'H1'
+                headline = f"①に不安。{K[w0['w']-1]}{w0['nm']}のまくりが狭水面で一考"; hid = 'H1'
             elif kt0 == 'sashi':
-                headline = f"イン薄く外が主役。{K[w0['w']-1]}{w0['nm']}のまくり差しに妙味"; hid = 'H2'
+                headline = f"①に不安。{K[w0['w']-1]}{w0['nm']}のまくり差しを警戒"; hid = 'H2'
             else:
-                headline = f"イン薄く外が主役。{K[w0['w']-1]}{w0['nm']}の一撃が本線候補"; hid = 'H3'
+                headline = f"①に不安。{K[w0['w']-1]}{w0['nm']}の一撃を警戒したい"; hid = 'H3'
             head_w = w0['w']
         elif in_strong:
             headline = f"①{nm(in1['氏名'])}の逃げが軸。外の一発をどこまで測るか"; hid = 'K4'
