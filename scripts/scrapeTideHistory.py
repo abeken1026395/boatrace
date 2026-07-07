@@ -25,8 +25,11 @@ JNAME = {"01":"桐生","02":"戸田","03":"江戸川","04":"平和島","05":"多
          "21":"芦屋","22":"福岡","23":"唐津","24":"大村"}
 CHUNKS = [("2025-07-15","2025-10-15"),("2025-10-16","2026-01-15"),
           ("2026-01-16","2026-04-15"),("2026-04-16","2026-07-05")]
+# 内陸淡水6場（桐生/戸田/多摩川/三国/びわこ/住之江）はCOORDが海から遠くMarineが応答せず
+# 90秒タイムアウトで全体を止める。潮汐対象外なので除外し、汽水+海水18場のみ取得する。
+FRESH = {"01","02","05","10","11","12"}
 
-def http(url, t=90):
+def http(url, t=25):
     with urllib.request.urlopen(url, timeout=t, context=ssl.create_default_context()) as r:
         return json.loads(r.read().decode("utf-8"))
 
@@ -34,6 +37,8 @@ def main():
     os.makedirs(OUTDIR, exist_ok=True)
     ok = 0
     for jcd, (lat, lon) in COORD.items():
+        if jcd in FRESH:
+            continue  # 内陸淡水場は潮汐対象外（Marine応答なし）
         times, tide, wave, swell = [], [], [], []
         fail = 0
         for s, e in CHUNKS:
