@@ -15,6 +15,13 @@ import time
 import re
 import datetime
 import os
+from concurrent.futures import ThreadPoolExecutor
+from html import unescape as html_unescape
+
+# 並列度と1リクエストのタイムアウト（環境変数で調整可）。
+# 場×レースを1つのプールに平坦化して流すため、これが対boatrace.jpの同時接続上限になる。
+MAX_WORKERS = int(os.environ.get("SCRAPE_WORKERS", "10"))
+REQ_TIMEOUT = int(os.environ.get("SCRAPE_TIMEOUT", "12"))
 
 VENUES = {
     "01": "桐生", "02": "戸田", "03": "江戸川", "04": "平和島",
@@ -320,48 +327,66 @@ def parse_racelist(html, jcd, venue, hd, rno):
 
 
 def get_open_venues(hd):
-    """「本日のレース」一覧から本日開催している場コードの集合を返す。
+    """開催カレンダー（indexページ）から当日開催している場コードの集合を返す。
     非開催場はこの一覧に並ばないため、すり替わり（リダイレクトで別場の直近データ）を防げる。
-    取得できなければ None を返し、呼び出し側は従来どおり全場を試す。"""
+    取得できなければ None を返し、呼び出し側は従来どおり全場を試す。
+
+    注意: indexページのリンクは href 中で & が &amp; とHTMLエスケープされているため、
+    生テキストに対する `jcd=..&hd=..` の素朴なマッチは 0 件になる（＝以前の取得失敗の原因）。
+    html.unescape で復元し、パラメータ順（jcd→hd / hd→jcd）の両方を許容する。"""
     url = "https://www.boatrace.jp/owpc/pc/race/index?hd={}".format(hd)
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=12)
+        resp = requests.get(url, headers=HEADERS, timeout=REQ_TIMEOUT)
         if resp.status_code != 200:
             return None
-        # 一覧テーブルの各行に jcd=XX&hd=該当日 が埋まっている。該当日のものだけ拾う。
-        found = set(re.findall(r"jcd=(\d{2})&hd=" + re.escape(hd), resp.text))
+        text = html_unescape(resp.text)  # &amp; → & に戻してからマッチ
+        found = set(re.findall(r"jcd=(\d{2})&hd=" + re.escape(hd), text))
+        found |= set(re.findall(r"hd=" + re.escape(hd) + r"&jcd=(\d{2})", text))
         return found if found else None
     except Exception:
         return None
 
 
-def find_open_date_and_scrape(jcd, venue, hd):
-    """指定した開催日 hd で1R〜12Rを取得。取れなければ (None, [])。"""
-    url = "https://www.boatrace.jp/owpc/pc/race/racelist?rno=1&jcd={}&hd={}".format(jcd, hd)
+def fetch_racelist_records(jcd, venue, hd, rno):
+    """1レース分の出走表を取得してレコード化。非開催・失敗時は []。"""
+    url = "https://www.boatrace.jp/owpc/pc/race/racelist?rno={}&jcd={}&hd={}".format(rno, jcd, hd)
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=12)
-        if resp.status_code != 200:
-            return None, []
-        recs = parse_racelist(resp.text, jcd, venue, hd, 1)
-        if not recs:
-            return None, []
-        all_recs = list(recs)
-        def fetch_race(rno):
-            u = "https://www.boatrace.jp/owpc/pc/race/racelist?rno={}&jcd={}&hd={}".format(rno, jcd, hd)
-            try:
-                r = requests.get(u, headers=HEADERS, timeout=12)
-                if r.status_code == 200:
-                    return parse_racelist(r.text, jcd, venue, hd, rno)
-            except Exception:
-                pass
-            return []
-        from concurrent.futures import ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=6) as ex:
-            for recs_r in ex.map(fetch_race, range(2, 13)):
-                all_recs.extend(recs_r)
-        return hd, all_recs
+        r = requests.get(url, headers=HEADERS, timeout=REQ_TIMEOUT)
+        if r.status_code == 200:
+            return parse_racelist(r.text, jcd, venue, hd, rno)
     except Exception:
-        return None, []
+        pass
+    return []
+
+
+def scrape_date(hd, candidate_jcds, executor):
+    """候補場について、まず R1 を並列取得して開催判定し、
+    開催場の R2〜R12 を（場×レースを平坦化して）まとめて並列取得する。
+    戻り値: {jcd: [records...]}（開催場のみ）。
+
+    従来は「場は直列・場内レースのみ6並列」だったため 1場約30秒×場数で直列的に伸びていた。
+    ここでは全レースを1プールに流すので、壁時計時間は「総リクエスト数/並列度」で頭打ちになる。"""
+    # 1) 候補場の R1 を並列取得 → レコードが取れた場だけが「開催中」
+    r1_futs = {
+        jcd: executor.submit(fetch_racelist_records, jcd, VENUES.get(jcd, jcd), hd, 1)
+        for jcd in candidate_jcds
+    }
+    recs_by_jcd = {}
+    for jcd, fut in r1_futs.items():
+        recs = fut.result()
+        if recs:
+            recs_by_jcd[jcd] = list(recs)
+
+    # 2) 開催場の R2〜R12 を (jcd, rno) に平坦化して一括並列取得
+    tasks = [(jcd, rno) for jcd in recs_by_jcd for rno in range(2, 13)]
+    rest_futs = {
+        (jcd, rno): executor.submit(fetch_racelist_records, jcd, VENUES.get(jcd, jcd), hd, rno)
+        for (jcd, rno) in tasks
+    }
+    for (jcd, rno), fut in rest_futs.items():
+        recs_by_jcd[jcd].extend(fut.result())
+
+    return recs_by_jcd
 
 
 CSV_COLUMNS = [
@@ -447,7 +472,7 @@ def merge_with_existing(new_df, csv_path):
 
 
 def main():
-    print("出走表スクレイパー v4 (2日分取得: 当日+翌日)")
+    print("出走表スクレイパー v5 (開催カレンダー絞り込み＋場×レース平坦並列)")
     print("実行日時:", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     print()
 
@@ -464,19 +489,22 @@ def main():
     print()
 
     all_records = []
-    for d in dates:
-        hd = d.strftime("%Y%m%d")
-        ov = open_by_date.get(hd)
-        for jcd, name in VENUES.items():
-            if ov is not None and jcd not in ov:
-                continue
-            print("[{}][{}] {} ...".format(hd, jcd, name), end=" ", flush=True)
-            got_hd, records = find_open_date_and_scrape(jcd, name, hd)
-            if not records:
-                print("なし")
-                continue
-            all_records.extend(records)
-            print("OK ({}名)".format(len(records)))
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        for d in dates:
+            hd = d.strftime("%Y%m%d")
+            ov = open_by_date.get(hd)
+            if ov:
+                candidates = sorted(ov)              # カレンダー取得成功 → 開催場のみ
+            else:
+                candidates = list(VENUES.keys())     # 失敗時のみ従来どおり全24場を総当たり
+                print("[{}] カレンダー未取得のため全{}場を並列走査".format(hd, len(candidates)))
+            t0 = time.time()
+            recs_by_jcd = scrape_date(hd, candidates, executor)
+            for jcd in sorted(recs_by_jcd):
+                recs = recs_by_jcd[jcd]
+                all_records.extend(recs)
+                print("[{}][{}] {} ... OK ({}名)".format(hd, jcd, VENUES.get(jcd, jcd), len(recs)))
+            print("[{}] 開催{}場 取得 {:.1f}秒".format(hd, len(recs_by_jcd), time.time() - t0))
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     csv_path = os.path.join(OUTPUT_DIR, "racers_today.csv")
