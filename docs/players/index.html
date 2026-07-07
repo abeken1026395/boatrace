@@ -19,6 +19,37 @@ const R = window.__D;
 const RANK_BADGE = { "A1":"#e5484d", "A2":"#4593e5", "B1":"#7d8da0", "B2":"#5a6878" };
 const RANK_LINE  = { "A1":"#e5484d", "A2":"#4593e5", "B1":"#7d8da0", "B2":"#3a4550" };
 
+// 登番→選手 の逆引き（note内リンク・関係性表示に使う）
+const NO_MAP = {}; R.players.forEach(p=>{ NO_MAP[p.no]=p; });
+// note文中の「名前（登番）」を該当選手カードへのリンクに変換して描画。
+// 登番で選手を確定し、直前の文字列がその選手名で終わっていれば名前だけをリンク化して
+// 冗長な（登番）は落とす。名前が一致しなければ（登番）自体を小さなリンクにする。
+function renderNote(text, jump){
+  if(!text) return null;
+  const re=/[（(](\d{4})[）)]/g;
+  const out=[]; let last=0, m, idx=0;
+  const linkStyle={color:"#5ec8e6",cursor:"pointer",fontWeight:700,borderBottom:"1px dotted #5ec8e688"};
+  while((m=re.exec(text))){
+    const no=m[1], pl=NO_MAP[no];
+    if(!pl){ continue; } // 現役に居ない登番（引退・誤記）は素通し
+    const before=text.slice(last, m.index);
+    const nm=pl.name, title="→ "+nm+"（"+pl.branch+"・"+pl.rank+"）";
+    const click=e=>{e.stopPropagation();jump(no);};
+    if(before.endsWith(nm)){
+      // 直前が選手名 → 名前だけリンク、（登番）は省略
+      const pre=before.slice(0, before.length-nm.length);
+      if(pre) out.push(pre);
+      out.push(<span key={"lk"+idx} onClick={click} title={title} style={linkStyle}>{nm}</span>);
+    } else {
+      out.push(before);
+      out.push(<span key={"lk"+idx} onClick={click} title={title} style={{...linkStyle,fontSize:11}}>（{nm}）</span>);
+    }
+    last=re.lastIndex; idx++;
+  }
+  if(last<text.length) out.push(text.slice(last));
+  return out;
+}
+
 const KIM=[["nige","逃げ","#ffd166"],["makuri","まくり","#4593e5"],["sashi","差し","#3fb950"],["makurizashi","まくり差し","#d29922"],["nuki","抜き","#8957e5"],["megumare","恵まれ","#56607a"]];
 function BranchPanel({bsort,setBsort,kim}){
   const stat = useMemo(()=>{
@@ -159,6 +190,14 @@ function App() {
     },400);
   },[]);
 
+  // note内リンクから別選手カードへジャンプ（絞り込みを解除して確実に表示）
+  const jump = (no)=>{
+    if(!NO_MAP[no]) return;
+    setTab("list"); setRankF("ALL"); setBranchF("ALL"); setFemaleOnly(false);
+    setQ(no); setOpen(no);
+    setTimeout(()=>{ const el=document.getElementById("p-"+no); if(el) el.scrollIntoView({behavior:"smooth",block:"center"}); },350);
+  };
+
   const branches = useMemo(()=>[...new Set(R.players.map(p=>p.branch))].sort(), []);
   const filtered = useMemo(()=>{
     let rows = R.players.filter(p=>{
@@ -275,7 +314,7 @@ function App() {
                   </div>
                   {pf&&pf.hobby&&<div style={{fontSize:12,color:"#c5d2e0",marginTop:-4}}>🎣 趣味：{pf.hobby}</div>}
                   {pf&&pf.food&&<div style={{fontSize:12,color:"#c5d2e0",marginTop:4}}>🍴 好物：{pf.food}</div>}
-                  {pf&&pf.note&&<div style={{fontSize:12,color:"#c5d2e0",marginTop:4,lineHeight:1.5}}>💬 {pf.note}</div>}
+                  {pf&&pf.note&&<div style={{fontSize:12,color:"#c5d2e0",marginTop:4,lineHeight:1.6}}>💬 {renderNote(pf.note, jump)}</div>}
                   {pf&&(pf.hobby||pf.food||pf.note)&&<div style={{height:14}}></div>}
                   <div style={{fontSize:11,color:"#8faabe",fontWeight:700,marginBottom:6}}>■ 成績</div>
                   <div style={{display:"flex",gap:14,flexWrap:"wrap",marginBottom:14,background:"#0b1219",borderRadius:8,padding:"10px 12px"}}>
