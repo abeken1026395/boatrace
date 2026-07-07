@@ -140,6 +140,35 @@ header .sub { font-size:11px; color:#8a94a3; margin-top:4px; }
 
 .empty { text-align:center; color:#8a94a3; font-size:13px; padding:40px 0; }
 .legend-note { font-size:10px; color:#6f7d8c; margin-top:14px; line-height:1.6; }
+
+/* マイ・パネル（記憶と回収ループ） */
+.my { border-radius:12px; margin:6px 0 4px; overflow:hidden; border:1px solid #1f2b3a; background:#101a26; }
+.my-sec { padding:10px 12px; }
+.my-sec + .my-sec { border-top:1px solid #1b2735; }
+.my-h { font-size:12px; font-weight:bold; display:flex; align-items:center; gap:7px; margin-bottom:7px; }
+.my-h .cnt { font-size:11px; color:#0b1219; background:#ffd166; border-radius:10px; padding:0 7px; font-weight:bold; }
+.harvest .my-h { color:#ffd166; }
+.watch .my-h { color:#7ec8ff; }
+.recent .my-h { color:#9fb0c3; }
+.my-row { display:flex; align-items:center; gap:9px; padding:7px 8px; border-radius:8px; background:#0d1622; margin-top:6px; cursor:pointer; }
+.my-row:active { background:#152233; }
+.my-rl { flex:1; min-width:0; }
+.my-rt { font-size:13px; font-weight:bold; color:#e8edf3; }
+.my-rs { font-size:10px; color:#8a94a3; margin-top:1px; }
+.pill { font-size:10px; font-weight:bold; border-radius:10px; padding:2px 9px; white-space:nowrap; flex:none; }
+.pill-done { color:#0b1219; background:#ffd166; }
+.pill-wait { color:#ffd166; background:#2e2712; border:1px solid #5a4a1a; }
+.pill-pre { color:#7fe0a0; background:#12241a; border:1px solid #1e4a30; }
+.harvest-link { color:#0b1219; background:#ffd166; font-size:11px; font-weight:bold; border-radius:6px; padding:5px 10px; text-decoration:none; white-space:nowrap; flex:none; }
+.harvest-x { font-size:11px; color:#8a94a3; border:1px solid #2a3a4d; border-radius:6px; padding:5px 8px; background:none; cursor:pointer; flex:none; }
+.recent-chips { display:flex; gap:6px; flex-wrap:wrap; }
+.rchip { font-size:11px; color:#a9c6dd; background:#0d1622; border:1px solid #24344a; border-radius:14px; padding:3px 10px; cursor:pointer; }
+.my-empty { font-size:11px; color:#6f7d8c; }
+/* スター（気になる）ボタン */
+.watchbtn { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:bold; border-radius:6px; padding:5px 12px; cursor:pointer; border:1px solid #3a5170; background:#0f1a26; color:#7ec8ff; transition:transform .12s; }
+.watchbtn.on { background:#12233a; color:#ffd166; border-color:#5a4a1a; }
+.watchbtn:active { transform:scale(.92); }
+.hdr-harvest { display:inline-block; margin-top:6px; font-size:11px; font-weight:bold; color:#0b1219; background:#ffd166; border-radius:12px; padding:3px 11px; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -233,6 +262,59 @@ function toMin(dl){ var m=/^(\d{1,2}):(\d{2})$/.exec(dl); return m?parseInt(m[1]
 function curMin(){ var n=nowJST(); return n.getUTCHours()*60+n.getUTCMinutes(); }
 function curYmd(){ var n=nowJST(); return n.getUTCFullYear()*1e4+(n.getUTCMonth()+1)*100+n.getUTCDate(); }
 
+/* ===== 記憶と回収ループ（localStorage・賭け要素なし。読む体験の“開いたループ”を閉じさせる） ===== */
+function lsGet(k,d){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+var WATCH=lsGet("br_watch",[]);       /* 気になる（明示スター） */
+var VIEWED=lsGet("br_viewed",[]);     /* 最近見た（自動） */
+var COLLECTED=lsGet("br_collected",[]); /* 結果を回収済みのキー */
+function rkey(jcd,hd,rno){ return jcd+"_"+hd+"_"+rno; }
+/* レース状態: 'pre'(締切前) / 'wait'(結果待ち〜締切+12分) / 'done'(結果確定) */
+function raceStatus(hd,dl){
+  var dm=toMin(dl); if(dm===null||!/^\d{8}$/.test(hd)) return 'pre';
+  var cur=curYmd(), h=parseInt(hd);
+  if(cur>h) return 'done';
+  if(cur<h) return 'pre';
+  var diff=curMin()-dm;
+  if(diff<0) return 'pre';
+  return diff<12?'wait':'done';
+}
+function pruneOld(){
+  /* 3日以上前のレースは間引く（無限肥大防止） */
+  var cut=curYmd()-3;
+  function keep(x){ return parseInt(x.hd||"0")>=cut; }
+  WATCH=WATCH.filter(keep); VIEWED=VIEWED.filter(keep);
+  COLLECTED=COLLECTED.filter(function(k){ return parseInt((k.split("_")[1]||"0"))>=cut; });
+}
+function isWatched(jcd,hd,rno){ var k=rkey(jcd,hd,rno); return WATCH.some(function(x){return rkey(x.jcd,x.hd,x.rno)===k;}); }
+function toggleWatch(v,rno){
+  var rc=v.races[rno], k=rkey(v.jcd,v.hd,rno);
+  if(isWatched(v.jcd,v.hd,rno)){ WATCH=WATCH.filter(function(x){return rkey(x.jcd,x.hd,x.rno)!==k;}); }
+  else { WATCH.unshift({jcd:v.jcd,hd:v.hd,rno:rno,venue:v.name,deadline:rc.deadline,kikaku:rc.kikaku,ts:Date.now()}); }
+  lsSet("br_watch",WATCH);
+}
+function recordViewed(v,rno){
+  var rc=v.races[rno], k=rkey(v.jcd,v.hd,rno);
+  VIEWED=VIEWED.filter(function(x){return rkey(x.jcd,x.hd,x.rno)!==k;});
+  VIEWED.unshift({jcd:v.jcd,hd:v.hd,rno:rno,venue:v.name,deadline:rc.deadline,ts:Date.now()});
+  if(VIEWED.length>40) VIEWED=VIEWED.slice(0,40);
+  lsSet("br_viewed",VIEWED);
+}
+function isCollected(jcd,hd,rno){ return COLLECTED.indexOf(rkey(jcd,hd,rno))>=0; }
+function markCollected(jcd,hd,rno){ var k=rkey(jcd,hd,rno); if(COLLECTED.indexOf(k)<0){ COLLECTED.push(k); lsSet("br_collected",COLLECTED); } }
+function resultUrl(jcd,hd,rno){ return "https://www.boatrace.jp/owpc/pc/race/raceresult?rno="+rno+"&jcd="+jcd+"&hd="+hd; }
+/* 「気になる/見た」レースのうち結果確定・未回収の一覧（回収対象） */
+function harvestList(){
+  var seen={}, out=[];
+  WATCH.concat(VIEWED).forEach(function(x){
+    var k=rkey(x.jcd,x.hd,x.rno);
+    if(seen[k]) return; seen[k]=1;
+    if(raceStatus(x.hd,x.deadline)==='done' && !isCollected(x.jcd,x.hd,x.rno))
+      out.push(x);
+  });
+  return out;
+}
+
 function isClosed(hd,dl){
   var dm=toMin(dl); if(dm===null||!/^\d{8}$/.test(hd)) return false;
   var cur=curYmd();
@@ -296,7 +378,7 @@ function renderVenues(app,crumb,keys){
   keys.forEach(function(k){ var v=venues[k]; (byDate[v.hd]=byDate[v.hd]||[]).push(v); });
   var dates=Object.keys(byDate).sort();
   var todayJST=(function(){ var n=nowJST(); return n.getUTCFullYear()+("0"+(n.getUTCMonth()+1)).slice(-2)+("0"+n.getUTCDate()).slice(-2); })();
-  var html="";
+  var html=buildMyPanel();
   dates.forEach(function(hd){
     var list=byDate[hd].sort(function(a,b){return a.jcd<b.jcd?-1:1;});
     var mm=hd.slice(4,6),dd=hd.slice(6,8);
@@ -315,6 +397,59 @@ function renderVenues(app,crumb,keys){
   app.innerHTML=html;
   Array.prototype.forEach.call(app.querySelectorAll(".venue-card"),function(el){
     el.onclick=function(){ view={page:"races",key:el.getAttribute("data-k"),rno:null,sort:view.sort}; render(); window.scrollTo(0,0); };
+  });
+  wireMyPanel(app);
+}
+
+/* 「気になる/最近見た/回収」パネルのHTML */
+function buildMyPanel(){
+  pruneOld();
+  var harvest=harvestList();
+  var waiting=WATCH.filter(function(x){ var s=raceStatus(x.hd,x.deadline); return s==='pre'||s==='wait'; });
+  var hset={}; harvest.forEach(function(x){ hset[rkey(x.jcd,x.hd,x.rno)]=1; });
+  var recent=VIEWED.filter(function(x){ return !hset[rkey(x.jcd,x.hd,x.rno)]; }).slice(0,8);
+  if(!harvest.length && !waiting.length && !recent.length) return "";
+  var h='<div class="my">';
+  if(harvest.length){
+    h+='<div class="my-sec harvest"><div class="my-h">🎣 結果が出た<span class="cnt">'+harvest.length+'</span></div>';
+    h+=harvest.map(function(x){
+      var k=rkey(x.jcd,x.hd,x.rno);
+      return '<div class="my-row">'
+        +'<div class="my-rl" data-open="'+esc(k)+'"><div class="my-rt">'+esc(x.venue)+' '+x.rno+'R</div><div class="my-rs">'+esc(x.kikaku||"")+(x.kikaku?'｜':'')+'締切 '+esc(x.deadline||"")+'</div></div>'
+        +'<a class="harvest-link" data-collect="'+esc(k)+'" href="'+resultUrl(x.jcd,x.hd,x.rno)+'" target="_blank" rel="noopener">結果 →</a>'
+        +'<button class="harvest-x" data-collect="'+esc(k)+'" title="回収済みにする">✓</button>'
+        +'</div>';
+    }).join("")+'</div>';
+  }
+  if(waiting.length){
+    h+='<div class="my-sec watch"><div class="my-h">🔖 気になる</div>';
+    h+=waiting.map(function(x){
+      var s=raceStatus(x.hd,x.deadline), k=rkey(x.jcd,x.hd,x.rno);
+      var pill=s==='wait'?'<span class="pill pill-wait">結果待ち</span>':'<span class="pill pill-pre">締切前</span>';
+      return '<div class="my-row"><div class="my-rl" data-open="'+esc(k)+'"><div class="my-rt">'+esc(x.venue)+' '+x.rno+'R</div><div class="my-rs">締切 '+esc(x.deadline||"")+'</div></div>'+pill+'</div>';
+    }).join("")+'</div>';
+  }
+  if(recent.length){
+    h+='<div class="my-sec recent"><div class="my-h">最近見た</div><div class="recent-chips">'
+      +recent.map(function(x){ return '<span class="rchip" data-open="'+esc(rkey(x.jcd,x.hd,x.rno))+'">'+esc(x.venue)+' '+x.rno+'R</span>'; }).join("")
+      +'</div></div>';
+  }
+  return h+'</div>';
+}
+function myOpen(k){
+  var p=String(k).split("_"); if(p.length<3) return;
+  var vkey=p[0]+"_"+p[1];
+  if(venues[vkey]){ view={page:"race",key:vkey,rno:parseInt(p[2]),sort:view.sort}; render(); window.scrollTo(0,0); }
+}
+function wireMyPanel(app){
+  Array.prototype.forEach.call(app.querySelectorAll("[data-open]"),function(el){
+    el.onclick=function(){ myOpen(el.getAttribute("data-open")); };
+  });
+  Array.prototype.forEach.call(app.querySelectorAll(".harvest-x"),function(el){
+    el.onclick=function(e){ e.stopPropagation(); var p=el.getAttribute("data-collect").split("_"); markCollected(p[0],p[1],p[2]); render(); };
+  });
+  Array.prototype.forEach.call(app.querySelectorAll(".harvest-link"),function(el){
+    el.onclick=function(){ var p=el.getAttribute("data-collect").split("_"); markCollected(p[0],p[1],p[2]); setTimeout(render,400); };
   });
 }
 
@@ -382,6 +517,7 @@ function shuTable(row){
 function renderRace(app,crumb,v){
   var rc=v.races[view.rno];
   if(!rc){ view={page:"races",key:view.key,sort:view.sort}; render(); return; }
+  recordViewed(v,view.rno);   /* 見たレースを記憶（回収ループの起点） */
   crumb.innerHTML='<a href="#" id="back0">場一覧</a> ＞ <a href="#" id="back1">'+esc(v.name)+'</a> ＞ '+view.rno+'R';
   /* 見どころ結合は開催日一致時のみ（stale/翌日データの誤結合を防止） */
   var hlKey=v.jcd+"_"+view.rno+"R";
@@ -397,16 +533,17 @@ function renderRace(app,crumb,v){
   else { cdCls="cd-open"; cdTxt="締切まで"+fmtMins(mins); }
   var cdHtml=cdTxt?'<span class="cd '+cdCls+'">'+esc(cdTxt)+'</span>':'';
 
-  /* 公式リンク（出走表・結果）。結果は締切後を金CTA、締切前は確定待ちの淡色表示 */
-  var links="";
+  /* 気になる（記憶）＋公式リンク（出走表・結果） */
+  var wOn=isWatched(v.jcd,v.hd,view.rno);
+  var wbtn='<span class="watchbtn'+(wOn?' on':'')+'" id="watchbtn">'+(wOn?'✅ 追加済み':'🔖 気になる')+'</span>';
+  var off="";
   if(/^\d{8}$/.test(v.hd)){
     var base="https://www.boatrace.jp/owpc/pc/race/", q="?rno="+view.rno+"&jcd="+v.jcd+"&hd="+v.hd;
     var closed=isClosed(v.hd,rc.deadline);
-    links='<div class="race-links">'
-      +'<a class="offlink '+(closed?"offlink-result":"offlink-pend")+'" href="'+base+'raceresult'+q+'" target="_blank" rel="noopener">🏁 '+(closed?"レース結果（公式）":"結果（締切後に確定）")+' ↗</a>'
-      +'<a class="offlink offlink-card" href="'+base+'racelist'+q+'" target="_blank" rel="noopener">公式出走表 ↗</a>'
-      +'</div>';
+    off='<a class="offlink '+(closed?"offlink-result":"offlink-pend")+'" href="'+base+'raceresult'+q+'" target="_blank" rel="noopener">🏁 '+(closed?"レース結果（公式）":"結果（締切後に確定）")+' ↗</a>'
+      +'<a class="offlink offlink-card" href="'+base+'racelist'+q+'" target="_blank" rel="noopener">公式出走表 ↗</a>';
   }
+  var links='<div class="race-links">'+wbtn+off+'</div>';
   var html='<div class="race-head"><div class="line1"><span class="rt">'+esc(v.name)+' '+view.rno+'R</span><span class="kikaku">'+esc(rc.kikaku)+'</span></div>'
     +'<div class="dl">'+cdHtml+'<span>締切 '+esc(rc.deadline||"-")+'</span><span>'+esc(v.setsu)+' '+esc(v.day)+'</span></div>'
     +links+'</div>';
@@ -469,6 +606,8 @@ function renderRace(app,crumb,v){
   Array.prototype.forEach.call(app.querySelectorAll(".sortbtn"),function(el){
     el.onclick=function(){ view.sort=el.getAttribute("data-s"); render(); };
   });
+  var wb=document.getElementById("watchbtn");
+  if(wb) wb.onclick=function(){ toggleWatch(v,view.rno); render(); };
 }
 
 function boatCard(row,v,hl,minST,maxST,maxMotor){
