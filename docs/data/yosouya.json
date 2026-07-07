@@ -1,0 +1,100 @@
+{
+  "updated": "2026-07-07",
+  "_policy": "場内『公認予想屋』の“文化・存在・屋号/通称”を紹介する読み物データ。買い目・的中率・勝敗の断定は載せない（予想屋が売る買い目そのものは扱わない）。屋号/通称は公表済みで媒体に繰り返し登場するもののみ、confirmed と出典付きで記載。在籍数・料金・顔ぶれは変動するため checked を重視。詳細ログは docs/data/yosouyaMemo.md。",
+  "_schema": {
+    "present": {
+      "yes": "場立ち予想屋の存在が二次ソースで具体的に確認できた場。",
+      "official": "公式サイト（施設案内/フロアガイド等）に予想屋の記載がある場。",
+      "paper": "場立ち予想屋は未確認だが、場内予想紙の存在が確認できた場。",
+      "unknown": "今回のWeb調査では場内予想屋の情報を確認できなかった場（＝不在とは限らない）。"
+    },
+    "confirmed": { "official": "公式記載で確認", "secondary": "二次ソース（ファンメディア/専門紙WEB等）での言及。公式未確認。" },
+    "person_fields": "name(屋号/通称) / kind(屋号 or 通称) / note",
+    "venue_fields": "name / present / count / fee / people[] / hook / note / confirmed / source / checked"
+  },
+  "_collection_note": "収集時（2026-07-07）の実行環境は egress ポリシーにより boatrace.jp / boatrace-*.jp など公式ドメインとファンメディアの多くを直接遮断（CONNECT 403）。情報は Web 検索の要約経由で把握したもので、公式・二次ページ本文の直接確認は未実施（蒲郡の公式フロアガイド記載も検索経由）。在籍・顔ぶれ・料金は変動が激しいため、ネット制約のないローカル環境＋現地での再確認を推奨。",
+  "intro": {
+    "title": "場内の“公認予想屋”という文化",
+    "lead": "スマホ予想全盛のいま、競艇場には今も『公認予想屋（場立ち）』が立つ。場の許可を受け、100円玉を台に置けば次走の狙い目を紙で渡してくれる——昭和から続く場内の名物だ。数は年々減り、屋号や筆書き、独特の呼び込みごと“文化財”になりつつある。",
+    "disclaimer": "本データは予想屋の“存在・文化・屋号/通称”の紹介であり、各予想屋の買い目・的中率・勝敗を保証・断定するものではありません。在籍・料金・顔ぶれは変動します。情報は二次ソース中心で、現地・公式での確認を推奨します。"
+  },
+  "venues": {
+    "01": {
+      "name": "桐生", "present": "yes", "count": "5名（南スタンド1F 4名＋外向発売所ドラショップ1名／2025年1月時点）", "fee": "1レース100円",
+      "people": [ { "name": "（女性予想屋あり・通称不明）", "kind": "通称", "note": "全国でも珍しい女性の場立ち予想屋が在籍と紹介される。" } ],
+      "hook": "全国でも珍しい“女性予想屋”が立つ桐生。100円玉を台に置けば、次走の狙い目が紙で返ってくる昭和からの場内文化。",
+      "confirmed": "secondary", "source": "https://kiryu-mania.com/tipster/", "checked": "2026-07-07"
+    },
+    "02": {
+      "name": "戸田", "present": "yes", "count": "7名", "fee": "1レース100円前後（12R割引販売の紹介あり）",
+      "people": [ { "name": "ターちゃん", "kind": "通称", "note": "予想屋組合の代表格として紹介。SNS/YouTubeでも活動。" } ],
+      "hook": "全国で唯一“予想屋組合”（戸田競艇コンサルタント事業協同組合）を持つ戸田。YouTube『予想屋の館』まで始めた、進化系の場立ち集団。",
+      "note": "全国唯一の予想屋組合を擁するとされる。", "confirmed": "secondary", "source": "https://fukuoka-kyotei.com/column/toda_yosouya/", "checked": "2026-07-07"
+    },
+    "03": {
+      "name": "江戸川", "present": "yes", "count": "約10名", "fee": "1レース100円（基本8点）",
+      "people": [],
+      "hook": "日本一の難水面を長年読んできた目利き集団。展示の読み解きは場内予想屋の独壇場、との声も。正面2Fの投票所建物内と堤防スタンド側に常駐。",
+      "confirmed": "secondary", "source": "https://edogawa-mania.net/tipsster/", "checked": "2026-07-07"
+    },
+    "04": {
+      "name": "平和島", "present": "yes", "count": "複数",
+      "people": [ { "name": "マルキン", "kind": "通称", "note": "大穴狙いで知られる名物。艇番などを筆で書く伝統。食堂では『ゴロちゃん』の愛称。住之江で修行後、約30年前に平和島へ、と紹介される。" } ],
+      "hook": "「平和島の予想屋といえばマルキン」。筆で狙い目を書き上げる大穴師で、台の周りはいつも人だかり。気さくな人柄も名物。",
+      "confirmed": "secondary", "source": "https://www.eurorvvv.org/famous/heiwajima/", "checked": "2026-07-07"
+    },
+    "05": {
+      "name": "多摩川", "present": "yes", "count": "複数",
+      "people": [ { "name": "和ちゃん", "kind": "屋号", "note": "代替わりを重ねる看板。『勝負！』の一言が出たら乗れ、と語られる。" } ],
+      "hook": "「勝負！勝負！」の掛け声が名物。代替わりしながら続く看板『和ちゃん』に、1日2回の万舟伝説など逸話も多い。",
+      "confirmed": "secondary", "source": "https://ameblo.jp/toptrend-womenblog/entry-12487235495.html", "checked": "2026-07-07"
+    },
+    "07": {
+      "name": "蒲郡", "present": "official",
+      "people": [],
+      "hook": "ナイターの蒲郡は、公式フロアガイドに『予想屋・専門紙の部屋』が載る数少ない場。場立ち文化が公式に可視化されている。",
+      "note": "公式サイトのフロアガイドに施設『予想屋・専門紙の部屋』の記載あり（屋号・人数は未確認）。",
+      "confirmed": "official", "source": "https://www.gamagori-kyotei.com/sp/03guide/03guide.htm", "checked": "2026-07-07"
+    },
+    "08": {
+      "name": "常滑", "present": "yes", "count": "複数常駐", "fee": "1レース100円（3連単8点ほど）",
+      "people": [],
+      "hook": "フードコートの“どて丼”で腹を満たし、場内予想屋で狙い目を仕込む——王道の常滑ルーティン。",
+      "confirmed": "secondary", "source": "https://tokoname-mania.com/yoso/", "checked": "2026-07-07"
+    },
+    "12": {
+      "name": "住之江", "present": "yes", "count": "複数",
+      "people": [
+        { "name": "翔", "kind": "通称", "note": "関西弁の売り口上で知られる名物予想屋として紹介。" },
+        { "name": "でんちゃん", "kind": "屋号", "note": "" },
+        { "name": "住之江情報", "kind": "屋号", "note": "" },
+        { "name": "山上社", "kind": "屋号", "note": "" },
+        { "name": "日報", "kind": "屋号", "note": "" }
+      ],
+      "hook": "ナイターの聖地には腕自慢がずらり。名物『翔』の関西弁口上に、『でんちゃん』『山上社』『日報』など老舗の屋号が並ぶ。",
+      "confirmed": "secondary", "source": "https://www.cosboa.org/column/suminoe-kyouteiyosouya-sho/", "checked": "2026-07-07"
+    },
+    "17": {
+      "name": "宮島", "present": "paper",
+      "people": [],
+      "hook": "場内で買えるご当地予想紙『ブイ』が名物。場立ち予想屋の有無は今回未確認。",
+      "note": "場内予想紙『ブイ(V)』の存在を確認（＝場立ち予想屋とは別物）。場立ち予想屋の有無は要現地確認。",
+      "confirmed": "secondary", "source": "https://kyoutei-navi.com/place/miyajima/", "checked": "2026-07-07"
+    },
+    "06": { "name": "浜名湖", "present": "unknown", "note": "場内予想屋の情報は今回のWeb調査では確認できず（不在とは限らない）。要現地確認。" },
+    "09": { "name": "津", "present": "unknown", "note": "公式の予想会イベントは確認できるが、場立ち予想屋の情報は未確認。要現地確認。" },
+    "10": { "name": "三国", "present": "unknown", "note": "場内予想屋の情報は今回のWeb調査では確認できず（不在とは限らない）。要現地確認。" },
+    "11": { "name": "びわこ", "present": "unknown", "note": "場内予想屋の情報は今回のWeb調査では確認できず（不在とは限らない）。要現地確認。" },
+    "13": { "name": "尼崎", "present": "unknown", "note": "公式の予想会イベントは確認できるが、場立ち予想屋の情報は未確認。要現地確認。" },
+    "14": { "name": "鳴門", "present": "unknown", "note": "場内予想屋の情報は今回のWeb調査では確認できず（不在とは限らない）。要現地確認。" },
+    "15": { "name": "丸亀", "present": "unknown", "note": "場内予想屋の情報は今回のWeb調査では確認できず（不在とは限らない）。要現地確認。" },
+    "16": { "name": "児島", "present": "unknown", "note": "場内予想屋の情報は今回のWeb調査では確認できず（不在とは限らない）。要現地確認。" },
+    "18": { "name": "徳山", "present": "unknown", "note": "場内予想屋の情報は今回のWeb調査では確認できず（不在とは限らない）。要現地確認。" },
+    "19": { "name": "下関", "present": "unknown", "note": "場内予想屋の情報は今回のWeb調査では確認できず（不在とは限らない）。要現地確認。" },
+    "20": { "name": "若松", "present": "unknown", "note": "場内予想屋の情報は今回のWeb調査では確認できず（不在とは限らない）。要現地確認。" },
+    "21": { "name": "芦屋", "present": "unknown", "note": "場内予想屋の情報は今回のWeb調査では確認できず（不在とは限らない）。要現地確認。" },
+    "22": { "name": "福岡", "present": "unknown", "note": "場内予想屋の情報は今回のWeb調査では確認できず（不在とは限らない）。要現地確認。" },
+    "23": { "name": "唐津", "present": "unknown", "note": "場内予想屋の情報は今回のWeb調査では確認できず（不在とは限らない）。要現地確認。" },
+    "24": { "name": "大村", "present": "unknown", "note": "予想紙・予想情報は確認できるが、場立ち予想屋の情報は未確認。要現地確認。" }
+  }
+}
