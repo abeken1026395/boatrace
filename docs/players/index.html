@@ -93,6 +93,48 @@ function extractRelations(note){
   return out;
 }
 
+// 役割→色。家族系は桃色に集約
+const ROLE_COLOR={ "師匠":"#d2a8ff","弟子":"#7ee787","同期":"#8faabe","親戚":"#ffd166" };
+function roleColor(role){ return ROLE_COLOR[role] || "#ff9ec4"; }
+// あるnote所有者(owner)の役割から見た、相手カードに出すべき逆方向の役割を返す
+function inverseRole(role, ownerNo){
+  const fem = NO_MAP[ownerNo] && NO_MAP[ownerNo].female; // owner=相手から見た人物
+  switch(role){
+    case "師匠": return "弟子";           // owner の師匠 → 相手から見て owner は弟子
+    case "弟子": return "師匠";
+    case "兄": case "姉": return fem ? "妹" : "弟"; // 相手が兄/姉 → owner は年下のきょうだい
+    case "弟": case "妹": return fem ? "姉" : "兄";
+    case "夫": return "妻"; case "妻": return "夫";
+    case "父": case "母": return fem ? "娘" : "息子"; // 相手が親 → owner は子
+    case "息子": case "娘": return fem ? "母" : "父"; // 相手が子 → owner は親
+    case "親戚": return "親戚";
+    case "同期": return "同期";
+    default: return null;
+  }
+}
+// 全プロフィールのnoteから関係グラフを構築（自分の記載＋他人の記載の逆方向を統合）
+function buildRelIndex(prof){
+  const idx={};
+  const add=(owner,role,no)=>{
+    if(!NO_MAP[no] || owner===no) return;
+    const arr=idx[owner]||(idx[owner]=[]);
+    if(arr.some(r=>r.role===role && r.no===no)) return;
+    arr.push({role, color:roleColor(role), no, name:NO_MAP[no].name});
+  };
+  for(const owner in prof){
+    const note=prof[owner] && prof[owner].note; if(!note) continue;
+    for(const e of extractRelations(note)){
+      add(owner, e.role, e.no);
+      const inv=inverseRole(e.role, owner);
+      if(inv) add(e.no, inv, owner);
+    }
+  }
+  // 表示順: 師匠→弟子→家族→親戚→同期
+  const ord={ "師匠":0,"弟子":1,"夫":2,"妻":2,"父":2,"母":2,"息子":2,"娘":2,"兄":2,"弟":2,"姉":2,"妹":2,"親戚":3,"同期":4 };
+  for(const k in idx) idx[k].sort((a,b)=>(ord[a.role]??9)-(ord[b.role]??9));
+  return idx;
+}
+
 const KIM=[["nige","逃げ","#ffd166"],["makuri","まくり","#4593e5"],["sashi","差し","#3fb950"],["makurizashi","まくり差し","#d29922"],["nuki","抜き","#8957e5"],["megumare","恵まれ","#56607a"]];
 function BranchPanel({bsort,setBsort,kim}){
   const stat = useMemo(()=>{
@@ -241,6 +283,9 @@ function App() {
     setTimeout(()=>{ const el=document.getElementById("p-"+no); if(el) el.scrollIntoView({behavior:"smooth",block:"center"}); },350);
   };
 
+  // 全noteから双方向の関係グラフを構築（profロード後に再計算）
+  const relIndex = useMemo(()=>buildRelIndex(prof), [prof]);
+
   const branches = useMemo(()=>[...new Set(R.players.map(p=>p.branch))].sort(), []);
   const filtered = useMemo(()=>{
     let rows = R.players.filter(p=>{
@@ -358,7 +403,7 @@ function App() {
                   {pf&&pf.hobby&&<div style={{fontSize:12,color:"#c5d2e0",marginTop:-4}}>🎣 趣味：{pf.hobby}</div>}
                   {pf&&pf.food&&<div style={{fontSize:12,color:"#c5d2e0",marginTop:4}}>🍴 好物：{pf.food}</div>}
                   {pf&&pf.note&&<div style={{fontSize:12,color:"#c5d2e0",marginTop:4,lineHeight:1.6}}>💬 {renderNote(pf.note, jump)}</div>}
-                  {pf&&pf.note&&(()=>{const rels=extractRelations(pf.note);if(!rels.length)return null;return (
+                  {(()=>{const rels=relIndex[p.no];if(!rels||!rels.length)return null;return (
                     <div style={{display:"flex",flexWrap:"wrap",gap:6,alignItems:"center",marginTop:8}}>
                       <span style={{fontSize:10,color:"#6b7f95",fontWeight:700}}>関係</span>
                       {rels.map((r,i)=>(
