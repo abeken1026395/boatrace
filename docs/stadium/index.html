@@ -237,11 +237,12 @@ function App() {
                             {sg.type && <span style={{marginLeft:6,fontSize:10,color:"#9fb5c9",background:"#0b1219",border:"1px solid #2a3d52",borderRadius:5,padding:"1px 5px"}}>{sg.type}</span>}
                             <span style={{marginLeft:6,fontSize:10,fontWeight:700,color:off?"#3fb950":"#d29922",background:(off?"#3fb950":"#d29922")+"18",border:"1px solid "+(off?"#3fb950":"#d29922")+"66",borderRadius:5,padding:"1px 6px"}}>{off?"公式確認":"諸説あり"}</span>
                             {sg.source && <a href={sg.source} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{marginLeft:6,fontSize:11,color:"#c98fd0"}}>出典→</a>}
+                            {sg.listen && <a href={sg.listen.url} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} title={sg.listen.kind==="official"?"公式が配信/配布する音源":"原曲そのものの検索（場の音源そのものとは限りません）"} style={{marginLeft:6,fontSize:11,fontWeight:700,color:sg.listen.kind==="official"?"#7fe0a0":"#9fb5c9"}}>{sg.listen.kind==="official"?"▶ 公式音源":"🔍 原曲(参考)"}</a>}
                           </div>
                           );
                         })}
                         {songs.length===0 && bg.note && <div style={{fontSize:12,color:"#c5d2e0",lineHeight:1.6}}>{bg.note}</div>}
-                        <div style={{marginTop:4,fontSize:10.5,color:"#8a7d9a",lineHeight:1.5}}>「諸説あり」は二次ソース（ファンメディア等）での言及で公式未確認。曲名・心理の話は読み物であり、断定・買い目ではありません。{songs[0]&&songs[0].checked?"（確認 "+songs[0].checked+"）":""}</div>
+                        <div style={{marginTop:4,fontSize:10.5,color:"#8a7d9a",lineHeight:1.5}}>「諸説あり」は二次ソース（ファンメディア等）での言及で公式未確認。「🔍原曲(参考)」は原曲そのものの検索で、場で流れるアレンジ/音源そのものとは限りません。曲名・心理の話は読み物であり、断定・買い目ではありません。{songs[0]&&songs[0].checked?"（確認 "+songs[0].checked+"）":""}</div>
                       </div>)}
                     </div>
                     );
