@@ -35,12 +35,16 @@ jobs:
           python-version: '3.12'
       - run: pip install requests beautifulsoup4 pandas lxml
       - run: python scripts/scrape_racers.py
+      # 節完結（venueMetaの日目=最終日）の場のモーター節成績を motorHistory.json に蓄積。
+      # venueMeta.json は直前の scrape_racers で再生成済み、motors_all.csv はcheckout済みの既存を読む（読み取りのみ）。
+      - run: python scripts/buildMotorHistory.py
       - name: commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/
           git add docs/data/venueMeta.json  # 場メタ（節名・日目）をモーターページ用に確実にコミット対象へ
+          git add docs/data/motorHistory.json  # モーター節成績の蓄積（前節1位機の元データ）
           git diff --staged --quiet && echo "no change" && exit 0
           git commit -m "出走表データ自動更新 $(date +'%Y-%m-%d %H:%M')"
           for i in 1 2 3 4 5; do
