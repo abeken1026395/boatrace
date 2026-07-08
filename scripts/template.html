@@ -132,9 +132,14 @@ function App(){
   const [females,setFemales]=useState(null);
   const [e30map,setE30map]=useState(null);  // jcd(2桁) -> {startDate:"YYYYMMDD"}（8桁）
   const [venueMeta,setVenueMeta]=useState(null);  // jcd(2桁) -> {場名,開催日,節名,企画名,日目}
+  const [motorHist,setMotorHist]=useState(null);  // jcd(2桁) -> [{節名,開催日,motors:{番号:2連率}}]
   useEffect(()=>{
     fetch("../players/female.json").then(r=>r.ok?r.json():Promise.reject())
       .then(a=>{ if(Array.isArray(a)) setFemales(new Set(a.map(String))); }).catch(()=>{});
+    // 節完結時に蓄積したモーター節成績（docs/data/motorHistory.json）。前節1位機の表示に使う。
+    // 欠落・該当jcd無しはフォールバック（何も出さない）で既存表示を壊さない。
+    fetch("../data/motorHistory.json").then(r=>r.ok?r.json():Promise.reject())
+      .then(j=>{ const ss=j&&j.sessions; if(Array.isArray(ss)){ const m={}; for(const s of ss){ const k=String(s.jcd||"").padStart(2,"0"); (m[k]=m[k]||[]).push(s); } setMotorHist(m); } }).catch(()=>{});
     // 節名・日目は出走表スクレイプが生成する docs/data/venueMeta.json を参照（方式B・実行順に非依存）。
     // 欠落・該当jcd無しでもフォールバック（節名日目を出さないだけ）で既存表示は壊さない。
     fetch("../data/venueMeta.json").then(r=>r.ok?r.json():Promise.reject())
@@ -157,6 +162,23 @@ function App(){
 
   // jcd(2桁ゼロ詰め)で場メタ（節名・日目）を引く。未取得・該当無しは null。
   const metaFor = (jcd) => venueMeta ? (venueMeta[String(jcd||"").padStart(2,"0")]||null) : null;
+
+  // その場の「前節1位モーター」を履歴から引く。今節(cardHd)より前の開催日で最新の完結節を選び、
+  // その節の2連率トップ機を返す。履歴無し・該当無しは null（実データのみ・推測しない）。
+  const prevTopFor = (jcd, cardHd) => {
+    if(!motorHist) return null;
+    const arr = motorHist[String(jcd||"").padStart(2,"0")];
+    if(!arr || !arr.length) return null;
+    const hd = String(cardHd||"");
+    let best = null;  // 今節より前の開催日で最新の節
+    for(const s of arr){ const shd=String(s["開催日"]||""); if(hd && shd>=hd) continue; if(!best || shd>String(best["開催日"]||"")) best=s; }
+    if(!best) return null;
+    const motors = best.motors||{};
+    let topNo=null, topRate=-1;
+    for(const no in motors){ const v=Number(motors[no]); if(isFinite(v) && v>topRate){ topRate=v; topNo=no; } }
+    if(topNo===null) return null;
+    return {no:topNo, rate:topRate, 節名:String(best["節名"]||""), 開催日:String(best["開催日"]||"")};
+  };
 
   const allVenues = useMemo(()=>[...new Set(R.data.map(r=>r[CI.venue]))].filter(Boolean),[]);
   // 当日CSVの最新開催日（YYYYMMDD最大）。これ未満の開催日の場＝前節記録として区別する。
@@ -225,6 +247,11 @@ function App(){
             <div style={{display:"flex",flexDirection:"column",minWidth:0}}>
               <span style={{fontSize:15,fontWeight:800,color:"#ffd166"}}>{venue}{isPrevSetsu(rows[0][CI.hd])&&<span style={{fontSize:10,fontWeight:700,color:"#9fb0c0",background:"#26333f",border:"1px solid #33475a",borderRadius:3,padding:"1px 6px",marginLeft:6,verticalAlign:"middle"}}>前節記録</span>}<E30Badge info={e30For(rows[0][CI.jcd], rows[0][CI.hd])}/><span style={{fontSize:11,fontWeight:600,color:"#7d94a8",marginLeft:8}}>{(()=>{const h=String(rows[0][CI.hd]||"");return h.length===8?`${+h.slice(4,6)}/${+h.slice(6,8)}時点`:"";})()}</span></span>
               <VenueMetaLine meta={metaFor(rows[0][CI.jcd])}/>
+              {(()=>{ const pt=prevTopFor(rows[0][CI.jcd], rows[0][CI.hd]); return pt ? (
+                <div style={{fontSize:10.5,color:"#7d94a8",marginTop:2}} title={`${pt.節名}（${pt.開催日}）節内2連率トップ`}>
+                  前節1位機 <b style={{color:"#8fd6c0"}}>M{pt.no}</b> <span style={{color:"#6b7f95"}}>（節内2連率トップ {pt.rate}%）</span>
+                </div>
+              ) : null; })()}
             </div>
             <span style={{fontSize:11,color:"#6b7f95",flex:"none",whiteSpace:"nowrap",paddingTop:2}}>{rows.length}艇　<span style={{color:"#8faabe"}}>モーター2連率 →</span></span>
           </div>
