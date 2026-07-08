@@ -33,6 +33,7 @@ body {
   padding: 11px 16px; font-size: 12px; color:#9db4c8; line-height:1.6; text-align:center;
 }
 .trustbar b { color:#ffd166; font-weight:700; }
+.trustbar .asof { display:inline-block; margin-left:4px; font-size:11px; color:#6b7f95; font-weight:400; letter-spacing:0; }
 .grid { display:grid; grid-template-columns: repeat(2, 1fr); gap: 14px; width:100%; max-width: 560px; }
 @media (max-width: 480px){ .grid{ grid-template-columns: 1fr; } .title{ font-size:52px; } }
 .card {
@@ -78,8 +79,8 @@ body {
   <div class="subtitle"><span class="en">boatrace data</span> ─ 競艇を、読む。</div>
 
   <div class="trustbar">
-    波乱の的中はまだ <b>36.1%</b>。それも隠さない。堅め <b>74.8%</b>・主役連対 <b>77.5%</b><br>
-    ─ <b>53,142</b> レースで自己採点継続中。
+    波乱の的中はまだ <b id="v-harai">36.1%</b>。それも隠さない。堅め <b id="v-kata">74.8%</b>・主役連対 <b id="v-shu">77.5%</b><br>
+    ─ <b id="v-total">53,142</b> レースで自己採点継続中。<span class="asof" id="v-asof">（2026/7/5現在）</span>
   </div>
 
   <div class="pwa-hint">
@@ -150,6 +151,29 @@ body {
     毎朝、開催前に数字だけ更新されます。
   </div>
 <script>
+// 信頼バーを verify_summary.json から自動反映（集計終了日を正直に表示）。
+// 失敗時はHTMLの固定値をそのまま残す。SWキャッシュ回避のためクエリを付与。
+(function(){
+  fetch("./data/verify_summary.json?_=" + Date.now(), { cache: "no-store" })
+    .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+    .then(function(d){
+      var set = function(id, v){ var el = document.getElementById(id); if(el && v != null && v !== "") el.textContent = v; };
+      var g = function(o, keys){ for(var i=0;i<keys.length;i++){ if(o==null) return null; o = o[keys[i]]; } return o; };
+      var total = d["総レース数"];
+      var harai = g(d, ["判定別的中率","波乱","的中率"]);
+      var kata  = g(d, ["判定別的中率","堅め","的中率"]);
+      var shu   = g(d, ["主役","連対率"]);
+      var end   = g(d, ["集計期間","終了"]);
+      if(total != null) set("v-total", Number(total).toLocaleString("en-US"));
+      if(harai != null) set("v-harai", harai + "%");
+      if(kata  != null) set("v-kata",  kata  + "%");
+      if(shu   != null) set("v-shu",   shu   + "%");
+      if(typeof end === "string" && /^\d{8}$/.test(end)){
+        set("v-asof", "（" + end.slice(0,4) + "/" + parseInt(end.slice(4,6),10) + "/" + parseInt(end.slice(6,8),10) + "現在）");
+      }
+    })
+    .catch(function(){ /* 固定値のまま */ });
+})();
 if("serviceWorker" in navigator){ window.addEventListener("load",function(){ navigator.serviceWorker.register("/boatrace/sw.js").catch(function(){}); }); }
 </script>
 </body>
