@@ -77,7 +77,9 @@ function MotorRow({row,rk,fem}){
         }</div>
         <div style={{display:"flex",gap:4,marginTop:2,alignItems:"center"}}>
           <span style={{fontSize:10,fontWeight:800,color:"#fff",background:gradeColor(g),padding:"1px 5px",borderRadius:3}}>{g||"-"}</span>
-          <span style={{fontSize:10,fontWeight:800,color:rk.color}}>{rk.label}</span>
+          {rk.key==="top"
+            ? <span style={{fontSize:10,fontWeight:800,color:"#0b1219",background:"#ffd166",padding:"1px 6px",borderRadius:3}}>超抜</span>
+            : <span style={{fontSize:10,fontWeight:800,color:rk.color}}>{rk.label}</span>}
           {my&&<span style={{fontSize:10,fontWeight:800,color:"#a8e063",border:"1px solid #3a5220",borderRadius:3,padding:"1px 5px"}}>B級×高機力</span>}
         </div>
       </div>
@@ -97,6 +99,12 @@ function App(){
   },[]);
 
   const allVenues = useMemo(()=>[...new Set(R.data.map(r=>r[CI.venue]))].filter(Boolean),[]);
+  const topCount = useMemo(()=>{
+    const g={};
+    for(const r of R.data){ const v=r[CI.venue]||"その他"; (g[v]=g[v]||[]).push(r); }
+    let n=0; for(const v in g){ n += Math.min(3, g[v].length); }
+    return n;
+  },[]);
   const grouped = useMemo(()=>{
     let rows=R.data;
     if(vf!=="ALL") rows=rows.filter(r=>r[CI.venue]===vf);
@@ -115,6 +123,7 @@ function App(){
         <span style={{fontSize:12,color:"#6b7f95"}}>{allVenues.length}場 / {R.data.length}件</span>
       </div>
       <div style={{fontSize:11,color:"#4a6070",marginBottom:8}}>最終更新: {R.updated||"-"}</div>
+      <div style={{fontSize:12,color:"#c5d2e0",marginBottom:8}}><b style={{color:"#0b1219",background:"#ffd166",padding:"1px 6px",borderRadius:3,fontSize:10,fontWeight:800}}>超抜</b> ＝各場の上位3機だけ。本日は全{R.data.length}機中 <b style={{color:"#ffd166"}}>{topCount}機</b>。</div>
 
       <button onClick={()=>setShowHelp(s=>!s)} style={{marginBottom:8,padding:"6px 12px",background:"#1a2738",color:"#8faabe",border:"1px solid #2a3d52",borderRadius:6,fontSize:12,cursor:"pointer",fontWeight:600}}>{showHelp?"▲ 見方を閉じる":"▼ このデータの見方"}</button>
       {showHelp&&(
