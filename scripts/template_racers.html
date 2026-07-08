@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>本日の出走表 | BOATRACE データポータル</title>
+<title>本日の出走表 | データ攻め</title>
+<link rel="manifest" href="/boatrace/manifest.json">
+<meta name="theme-color" content="#0b1219">
+<link rel="apple-touch-icon" href="/boatrace/icon180.png">
+<link rel="icon" href="/boatrace/icon192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="データ攻め">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#0b1219; color:#e0e6ed; font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN',Meiryo,sans-serif; padding-bottom:60px; -webkit-text-size-adjust:100%; }
@@ -118,6 +126,28 @@ header .sub { font-size:11px; color:#8a94a3; margin-top:4px; }
 .meter-val { font-size:10px; color:#9fb0c3; width:46px; flex:none; text-align:right; }
 .meter-best { color:#ffd166; font-weight:bold; }
 
+/* E30該当場成績（事実の生データ・二層表示） */
+.e30d { margin-top:8px; border:1px solid #24344a; border-radius:8px; background:#0f1a26; overflow:hidden; }
+.e30d > summary { list-style:none; cursor:pointer; padding:7px 10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.e30d > summary::-webkit-details-marker { display:none; }
+.e30-badge { font-size:10px; font-weight:bold; color:#0b1219; background:#8fd6c0; border-radius:4px; padding:1px 6px; flex:none; }
+.e30-sum { font-size:11px; color:#a9c6dd; }
+.e30-sum b { color:#e0e6ed; }
+.e30-few { font-size:9px; color:#c98; margin-left:2px; }
+.e30-caret { margin-left:auto; font-size:10px; color:#6f8aa3; }
+.e30d[open] .e30-caret::after { content:"閉じる ▲"; } .e30d:not([open]) .e30-caret::after { content:"内訳 ▼"; }
+.e30-body { padding:2px 10px 9px; }
+.e30-row { display:flex; align-items:center; font-size:11px; padding:4px 0; border-top:1px solid #16273a; }
+.e30-row.hd { color:#6f8aa3; font-weight:bold; border-top:none; }
+.e30-row .c { width:40px; color:#c5d2e0; font-weight:bold; }
+.e30-row .n { width:38px; text-align:right; color:#e0e6ed; }
+.e30-row .w1 { width:30px; text-align:right; color:#ffd166; font-weight:bold; }
+.e30-row .w2 { width:40px; text-align:right; color:#3fb1c9; font-weight:bold; }
+.e30-row .st { width:46px; text-align:right; color:#e0e6ed; }
+.e30-row .tk { flex:1; padding-left:8px; color:#8faabe; }
+.e30-row.dim { opacity:.5; }
+.e30-note { font-size:9px; color:#6f8aa3; margin-top:5px; line-height:1.5; }
+
 /* 決まり手構成バー */
 .kmr { margin-top:8px; }
 .kmr-ttl { font-size:10px; color:#8a94a3; margin-bottom:3px; display:flex; justify-content:space-between; }
@@ -140,14 +170,99 @@ header .sub { font-size:11px; color:#8a94a3; margin-top:4px; }
 
 .empty { text-align:center; color:#8a94a3; font-size:13px; padding:40px 0; }
 .legend-note { font-size:10px; color:#6f7d8c; margin-top:14px; line-height:1.6; }
+
+/* マイ・パネル（記憶と回収ループ） */
+.my { border-radius:12px; margin:6px 0 4px; overflow:hidden; border:1px solid #1f2b3a; background:#101a26; }
+.my-sec { padding:10px 12px; }
+.my-sec + .my-sec { border-top:1px solid #1b2735; }
+.my-h { font-size:12px; font-weight:bold; display:flex; align-items:center; gap:7px; margin-bottom:7px; }
+.my-h .cnt { font-size:11px; color:#0b1219; background:#ffd166; border-radius:10px; padding:0 7px; font-weight:bold; }
+.harvest .my-h { color:#ffd166; }
+.watch .my-h { color:#7ec8ff; }
+.recent .my-h { color:#9fb0c3; }
+.my-row { display:flex; align-items:center; gap:9px; padding:7px 8px; border-radius:8px; background:#0d1622; margin-top:6px; cursor:pointer; }
+.my-row:active { background:#152233; }
+.my-rl { flex:1; min-width:0; }
+.my-rt { font-size:13px; font-weight:bold; color:#e8edf3; }
+.my-rs { font-size:10px; color:#8a94a3; margin-top:1px; }
+.pill { font-size:10px; font-weight:bold; border-radius:10px; padding:2px 9px; white-space:nowrap; flex:none; }
+.pill-done { color:#0b1219; background:#ffd166; }
+.pill-wait { color:#ffd166; background:#2e2712; border:1px solid #5a4a1a; }
+.pill-pre { color:#7fe0a0; background:#12241a; border:1px solid #1e4a30; }
+.harvest-link { color:#0b1219; background:#ffd166; font-size:11px; font-weight:bold; border-radius:6px; padding:5px 10px; text-decoration:none; white-space:nowrap; flex:none; }
+.harvest-x { font-size:11px; color:#8a94a3; border:1px solid #2a3a4d; border-radius:6px; padding:5px 8px; background:none; cursor:pointer; flex:none; }
+.recent-chips { display:flex; gap:6px; flex-wrap:wrap; }
+.rchip { font-size:11px; color:#a9c6dd; background:#0d1622; border:1px solid #24344a; border-radius:14px; padding:3px 10px; cursor:pointer; }
+.my-empty { font-size:11px; color:#6f7d8c; }
+.my-note { font-size:10px; color:#6f7d8c; margin:2px 2px 4px; line-height:1.5; }
+.oshi-result { color:#0b1219; background:#ffd166; font-size:11px; font-weight:bold; border-radius:6px; padding:5px 10px; text-decoration:none; white-space:nowrap; flex:none; }
+/* スター（気になる）ボタン */
+.watchbtn { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:bold; border-radius:6px; padding:5px 12px; cursor:pointer; border:1px solid #3a5170; background:#0f1a26; color:#7ec8ff; transition:transform .12s; }
+.watchbtn.on { background:#12233a; color:#ffd166; border-color:#5a4a1a; }
+.watchbtn:active { transform:scale(.92); }
+.hdr-harvest { display:inline-block; margin-top:6px; font-size:11px; font-weight:bold; color:#0b1219; background:#ffd166; border-radius:12px; padding:3px 11px; cursor:pointer; }
+/* ポータルタブ */
+.navtabs { display:flex; gap:7px; overflow-x:auto; margin:10px 0 2px; padding-bottom:3px; -webkit-overflow-scrolling:touch; }
+.navtabs::-webkit-scrollbar { display:none; }
+.navtab { flex:none; font-size:12px; font-weight:bold; text-decoration:none; color:#9fb0c3; background:#101a26; border:1px solid #24344a; border-radius:16px; padding:6px 13px; white-space:nowrap; }
+.navtab.on { color:#0b1219; background:#ffd166; border-color:#ffd166; }
+.navtab:active { background:#182535; }
+.navtab.on:active { background:#e8bd50; }
+/* 今日の運勢（あそび）：既定は折りたたみの控えめ表示 */
+.fortune { border:1px solid #1f2b3a; background:#101a26; border-radius:10px; margin:6px 0 4px; }
+.fortune-bar { display:flex; align-items:center; gap:7px; padding:8px 12px; cursor:pointer; font-size:12px; color:#9fb0c3; }
+.fortune-dot { font-size:13px; opacity:.85; }
+.fortune-title { font-weight:bold; color:#b9c4d2; }
+.fortune-tag { font-size:9px; color:#7a7192; border:1px solid #2f2a44; border-radius:8px; padding:0 6px; }
+.fortune-inline { font-size:12px; color:#c8b57a; letter-spacing:1px; }
+.fortune-cta { font-size:11px; color:#8a94a3; }
+.fortune-caret { margin-left:auto; color:#6f7d8c; font-size:11px; }
+.fortune.open .fortune-bar { border-bottom:1px solid #1b2735; }
+.fortune-body, .fortune-pick, .fortune-nopick { padding:0 12px; }
+.fortune-nopick { font-size:12px; color:#9fb0c3; padding-top:8px; }
+.fortune-msg { font-size:12.5px; color:#dfe5ee; padding:9px 12px 0; line-height:1.6; }
+.fortune-sub { font-size:11px; color:#9fb0c3; padding:6px 12px 0; display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+.fortune-sub b { color:#cdd6e0; }
+.fortune-pick { display:flex; gap:6px; flex-wrap:wrap; padding-top:8px; padding-bottom:2px; }
+.zbtn { font-size:11px; color:#a9b4c4; background:#0d1622; border:1px solid #24344a; border-radius:12px; padding:4px 9px; cursor:pointer; }
+.zbtn:active { background:#182535; }
+.fortune-link { font-size:11px; color:#9db2c9; text-decoration:none; }
+.fortune-more { font-size:10px; color:#6f7d8c; padding:7px 12px 11px; }
+.fortune-reset { font-size:10px; color:#7a828f; cursor:pointer; text-decoration:underline; }
+/* 推し */
+.oshi { border-radius:12px; margin:6px 0 4px; border:1px solid #4a3a10; background:linear-gradient(135deg,#231a0e,#141c26); padding:10px 12px; }
+.oshi-h { font-size:12px; font-weight:bold; color:#ffd166; display:flex; align-items:center; gap:7px; }
+.oshi-cnt { font-size:11px; color:#0b1219; background:#ffd166; border-radius:10px; padding:0 7px; font-weight:bold; }
+.oshi-empty { font-size:11px; color:#8a7a4a; margin-top:6px; }
+.oshi-nick { font-size:10px; color:#c8a24a; font-style:italic; font-weight:normal; }
+.oshibtn { margin-left:auto; font-size:16px; line-height:1; color:#5c6773; cursor:pointer; flex:none; padding:2px 3px; transition:transform .12s; }
+.oshibtn.on { color:#ffd166; }
+.oshibtn:active { transform:scale(1.3); }
+.boat.oshi-on { border-color:#5a4a1a; box-shadow:0 0 0 1px #5a4a1a inset; }
+.my-row.oshi-row { background:#191408; border:1px solid #4a3a10; }
+/* ホーム画面に追加（PWA導線） */
+.a2hs { max-width:660px; margin:0 auto; padding:9px 12px; display:flex; align-items:center; gap:10px; background:#12233a; border-bottom:1px solid #24344a; font-size:12px; color:#cdd6e0; }
+.a2hs img { width:26px; height:26px; border-radius:6px; flex:none; }
+.a2hs .a2t { flex:1; line-height:1.5; }
+.a2hs .a2t b { color:#ffd166; }
+.a2hs .a2add { flex:none; font-size:12px; font-weight:bold; color:#0b1219; background:#ffd166; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; }
+.a2hs .a2x { flex:none; font-size:16px; color:#8a94a3; background:none; border:none; cursor:pointer; padding:2px 4px; }
 </style>
 </head>
 <body>
+<div id="a2hs" class="a2hs" hidden></div>
 <div class="wrap">
 <header>
   <h1>本日の出走表</h1>
   <div class="sub" id="updated"></div>
 </header>
+<nav class="navtabs">
+  <a class="navtab on">🏁 出走表</a>
+  <a class="navtab" href="../uranai/">🔮 選手占い</a>
+  <a class="navtab" href="../aisho-suminoe/">💞 相性</a>
+  <a class="navtab" href="../shobuun-suminoe/">⚡ 勝負運</a>
+  <a class="navtab" href="../">▦ ポータル</a>
+</nav>
 <div class="crumb" id="crumb"></div>
 <div id="app"><div class="empty">読み込み中…</div></div>
 </div>
@@ -186,10 +301,12 @@ var KMR={};        /* 登録番号 -> 決まり手/被され等 */
 var HL={};         /* 場コード_レース -> レース見どころ（機力/波乱/展開 等） */
 var PROF={};       /* 登録番号 -> あだ名/note */
 var HL_META={fix:[], hd:""};
+var E30=null, E30META=null;  /* E30該当場成績（生データ・事実提示のみ） */
 
 function loadJSON(u){ return fetch(u).then(function(r){return r.json();}); }
 function loadText(u){ return fetch(u).then(function(r){return r.text();}); }
 
+loadJSON("../data/e30PlayerStats.json").then(function(j){ if(j&&j["選手成績"]){E30=j["選手成績"];E30META={期間:j["集計期間"],出典:j["出典"],対象場:j["対象場"]||{}};} rerender(); }).catch(function(){});
 loadJSON("../data/arare.json").then(function(j){arare=j;arareHd=String(j&&j.generated||"").slice(0,10).replace(/-/g,"");rerender();}).catch(function(){});
 loadJSON("../data/weather.json").then(function(j){weather=j;rerender();}).catch(function(){});
 loadJSON("../players/profile.json").then(function(j){PROF=j||{};rerender();}).catch(function(){});
@@ -232,6 +349,173 @@ function fmtPct(s){ var f=parseFloat(s); return isNaN(f)?"-":f.toFixed(1)+"%"; }
 function toMin(dl){ var m=/^(\d{1,2}):(\d{2})$/.exec(dl); return m?parseInt(m[1])*60+parseInt(m[2]):null; }
 function curMin(){ var n=nowJST(); return n.getUTCHours()*60+n.getUTCMinutes(); }
 function curYmd(){ var n=nowJST(); return n.getUTCFullYear()*1e4+(n.getUTCMonth()+1)*100+n.getUTCDate(); }
+
+/* ===== 記憶と回収ループ（localStorage・賭け要素なし。読む体験の“開いたループ”を閉じさせる） ===== */
+function lsGet(k,d){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+var WATCH=lsGet("br_watch",[]);       /* 気になる（明示スター） */
+var VIEWED=lsGet("br_viewed",[]);     /* 最近見た（自動） */
+var COLLECTED=lsGet("br_collected",[]); /* 結果を回収済みのキー */
+function rkey(jcd,hd,rno){ return jcd+"_"+hd+"_"+rno; }
+/* レース状態: 'pre'(締切前) / 'wait'(結果待ち〜締切+12分) / 'done'(結果確定) */
+function raceStatus(hd,dl){
+  var dm=toMin(dl); if(dm===null||!/^\d{8}$/.test(hd)) return 'pre';
+  var cur=curYmd(), h=parseInt(hd);
+  if(cur>h) return 'done';
+  if(cur<h) return 'pre';
+  var diff=curMin()-dm;
+  if(diff<0) return 'pre';
+  return diff<12?'wait':'done';
+}
+function pruneOld(){
+  /* 3日以上前のレースは間引く（無限肥大防止） */
+  var cut=curYmd()-3;
+  function keep(x){ return parseInt(x.hd||"0")>=cut; }
+  WATCH=WATCH.filter(keep); VIEWED=VIEWED.filter(keep);
+  COLLECTED=COLLECTED.filter(function(k){ return parseInt((k.split("_")[1]||"0"))>=cut; });
+}
+function isWatched(jcd,hd,rno){ var k=rkey(jcd,hd,rno); return WATCH.some(function(x){return rkey(x.jcd,x.hd,x.rno)===k;}); }
+function toggleWatch(v,rno){
+  var rc=v.races[rno], k=rkey(v.jcd,v.hd,rno);
+  if(isWatched(v.jcd,v.hd,rno)){ WATCH=WATCH.filter(function(x){return rkey(x.jcd,x.hd,x.rno)!==k;}); }
+  else { WATCH.unshift({jcd:v.jcd,hd:v.hd,rno:rno,venue:v.name,deadline:rc.deadline,kikaku:rc.kikaku,ts:Date.now()}); }
+  lsSet("br_watch",WATCH);
+}
+function recordViewed(v,rno){
+  var rc=v.races[rno], k=rkey(v.jcd,v.hd,rno);
+  VIEWED=VIEWED.filter(function(x){return rkey(x.jcd,x.hd,x.rno)!==k;});
+  VIEWED.unshift({jcd:v.jcd,hd:v.hd,rno:rno,venue:v.name,deadline:rc.deadline,ts:Date.now()});
+  if(VIEWED.length>40) VIEWED=VIEWED.slice(0,40);
+  lsSet("br_viewed",VIEWED);
+}
+function isCollected(jcd,hd,rno){ return COLLECTED.indexOf(rkey(jcd,hd,rno))>=0; }
+function markCollected(jcd,hd,rno){ var k=rkey(jcd,hd,rno); if(COLLECTED.indexOf(k)<0){ COLLECTED.push(k); lsSet("br_collected",COLLECTED); } }
+function resultUrl(jcd,hd,rno){ return "https://www.boatrace.jp/owpc/pc/race/raceresult?rno="+rno+"&jcd="+jcd+"&hd="+hd; }
+/* 回収対象＝結果確定・未回収のレース。
+   ソース: 気になる(WATCH) / 最近見た(VIEWED) / 推しの出走(自動)。
+   推しが走ったレースはフォローだけで自動的に回収対象になる（明示操作不要）。 */
+function harvestList(){
+  var map={};
+  function add(x, oshiName){
+    /* 締切を過ぎたレースは公式結果リンクで確認（確定判定はアプリでは持たない） */
+    if(!x.hd || raceStatus(x.hd,x.deadline)==='pre') return;
+    if(isCollected(x.jcd,x.hd,x.rno)) return;
+    var k=rkey(x.jcd,x.hd,x.rno);
+    if(!map[k]) map[k]={jcd:x.jcd,hd:x.hd,rno:x.rno,venue:x.venue||"",deadline:x.deadline||"",kikaku:x.kikaku||"",oshi:false,oshiNames:[]};
+    if(oshiName){ map[k].oshi=true; if(map[k].oshiNames.indexOf(oshiName)<0) map[k].oshiNames.push(oshiName); }
+  }
+  WATCH.forEach(function(x){ add(x); });
+  VIEWED.forEach(function(x){ add(x); });
+  oshiEntries().forEach(function(x){ add(x, x.name); });
+  var out=Object.keys(map).map(function(k){ return map[k]; });
+  out.sort(function(a,b){
+    if(a.oshi!==b.oshi) return a.oshi?-1:1;               /* 推し優先 */
+    var ka=a.hd+("0"+a.deadline).slice(-5), kb=b.hd+("0"+b.deadline).slice(-5);
+    return ka>kb?-1:1;                                     /* 新しい順 */
+  });
+  return out;
+}
+
+/* ===== 推し選手フォロー（localStorage。人への愛着で毎日開く理由をつくる） ===== */
+var OSHI=lsGet("br_oshi",[]);   /* [{toban, name}] */
+function isOshi(toban){ return OSHI.some(function(o){return String(o.toban)===String(toban);}); }
+function toggleOshi(toban,name){
+  if(!toban) return;
+  if(isOshi(toban)){ OSHI=OSHI.filter(function(o){return String(o.toban)!==String(toban);}); }
+  else { OSHI.unshift({toban:String(toban),name:name||""}); }
+  lsSet("br_oshi",OSHI);
+}
+/* 推しの本日/翌日の出走を全場から集める */
+function oshiEntries(){
+  if(!OSHI.length) return [];
+  var set={}; OSHI.forEach(function(o){ set[String(o.toban)]=o.name; });
+  var out=[];
+  RAW.data.forEach(function(row){
+    var tb=g(row,"登録番号");
+    if(set[tb]===undefined) return;
+    out.push({toban:tb, name:g(row,"氏名").replace(/　+/g,"　"), jcd:g(row,"場コード"),
+      venue:g(row,"場名"), hd:g(row,"開催日"), rno:parseInt(g(row,"レース")), deadline:g(row,"締切時刻")});
+  });
+  out.sort(function(a,b){ return (a.hd+("0"+a.deadline).slice(-5)) < (b.hd+("0"+b.deadline).slice(-5)) ? -1 : 1; });
+  return out;
+}
+
+/* ===== 今日の運勢（あそび・エンタメ。勝敗予想や買い目ではありません） =====
+   端末に保存した星座と日付から決定的に生成（毎日変わる／同じ日は同じ結果）。
+   運勢は“あなたの一日”についてのみ。特定の艇や買い目は一切示さない。 */
+var ZODIAC=["牡羊座","牡牛座","双子座","蟹座","獅子座","乙女座","天秤座","蠍座","射手座","山羊座","水瓶座","魚座"];
+var BR_SIGN=lsGet("br_sign","");
+var FORTUNE_MSG=[
+  ["空回りしやすい日。深追いせず“見”に徹すると吉。","情報は多いほど迷う日。要点だけ拾って身軽に。","急がば回れ。手堅い一手が後で効いてくる。"],
+  ["ペースは掴みにくいが、粘れば形になる。","小さな発見がある日。メモしておくと後で活きる。","足元を固めるほど安定する一日。"],
+  ["まずまずの流れ。いつも通りが一番強い。","可もなく不可もなく。基本に忠実がベスト。","淡々と積み上げると良い巡り合わせ。"],
+  ["調子は上向き。直感が冴える日。","チャンスに気づきやすい日。動けば拾える。","流れは味方。思い切りが良い結果に。"],
+  ["絶好調。読みがピタッとハマる日。","視界良好、直感も理屈も噛み合う一日。","勢いそのまま突き抜けて良い日。"]
+];
+function hashStr(s){ var h=2166136261; for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=(h*16777619)>>>0; } return h>>>0; }
+function todayYmdStr(){ var n=nowJST(); return ""+n.getUTCFullYear()+("0"+(n.getUTCMonth()+1)).slice(-2)+("0"+n.getUTCDate()).slice(-2); }
+function dailyFortune(sign){
+  var seed=hashStr(sign+"|"+todayYmdStr());
+  var level=seed%5;                     /* 0..4 → ★1..5 */
+  var msgArr=FORTUNE_MSG[level], msg=msgArr[(seed>>3)%msgArr.length];
+  var aisho=40+((seed>>7)%61);          /* 相性運 40-100 */
+  var shobu=40+((seed>>13)%61);         /* 勝負運 40-100 */
+  return {stars:level+1, msg:msg, aisho:aisho, shobu:shobu};
+}
+var FORT_OPEN=lsGet("br_fortune_open",false);
+function buildFortune(){
+  var hasSign=!!BR_SIGN, f=hasSign?dailyFortune(BR_SIGN):null;
+  var starsInline=f?("★★★★★".slice(0,f.stars)+"☆☆☆☆☆".slice(0,5-f.stars)):"";
+  var bar='<div class="fortune-bar" id="fortuneToggle">'
+    +'<span class="fortune-dot">🔮</span><span class="fortune-title">今日の運勢</span><span class="fortune-tag">あそび</span>'
+    +(hasSign?'<span class="fortune-inline">'+starsInline+' '+esc(BR_SIGN)+'</span>':'<span class="fortune-cta">タップで占う</span>')
+    +'<span class="fortune-caret">'+(FORT_OPEN?'▴':'▾')+'</span></div>';
+  if(!FORT_OPEN) return '<div class="fortune">'+bar+'</div>';
+  var body='';
+  if(!hasSign){
+    body='<div class="fortune-nopick">星座をえらぶと、今日の運勢が出ます（毎日変わる・あそび）。</div>'
+      +'<div class="fortune-pick">'+ZODIAC.map(function(z){return '<span class="zbtn" data-sign="'+esc(z)+'">'+esc(z)+'</span>';}).join("")+'</div>'
+      +'<div style="height:8px"></div>';
+  } else {
+    body='<div class="fortune-msg">'+esc(f.msg)+'</div>'
+      +'<div class="fortune-sub"><span>相性運 <b>'+f.aisho+'</b></span><span>勝負運 <b>'+f.shobu+'</b></span>'
+      +'<span class="fortune-reset" id="fortuneReset">星座変更</span></div>'
+      +'<div class="fortune-more">🔮 <a class="fortune-link" href="../uranai/">選手占いでもっと占う →</a></div>';
+  }
+  return '<div class="fortune open">'+bar+body+'</div>';
+}
+function wireFortune(app){
+  var tg=app.querySelector("#fortuneToggle");
+  if(tg) tg.onclick=function(){ FORT_OPEN=!FORT_OPEN; lsSet("br_fortune_open",FORT_OPEN); render(); };
+  Array.prototype.forEach.call(app.querySelectorAll(".zbtn"),function(el){
+    el.onclick=function(){ BR_SIGN=el.getAttribute("data-sign"); lsSet("br_sign",BR_SIGN); FORT_OPEN=true; lsSet("br_fortune_open",true); render(); };
+  });
+  var rs=app.querySelector("#fortuneReset");
+  if(rs) rs.onclick=function(e){ e.stopPropagation(); BR_SIGN=""; lsSet("br_sign",""); render(); };
+}
+
+/* 推しの本日パネル */
+function buildOshiToday(){
+  if(!OSHI.length) return "";
+  var ent=oshiEntries();
+  var h='<div class="oshi"><div class="oshi-h">⭐ 推しの本日 <span class="oshi-cnt">'+OSHI.length+'人</span></div>';
+  if(!ent.length){
+    h+='<div class="oshi-empty">フォロー中の選手は本日・翌日の出走はありません。</div>';
+  } else {
+    h+=ent.map(function(x){
+      var st=raceStatus(x.hd,x.deadline);
+      var pf=PROF[x.toban]||{}, nick=pf.nickname||pf.tagline||"";
+      /* 締切前=ピル、締切後=公式結果リンク（確定は公式が持つ） */
+      var right=st==='pre'
+        ? '<span class="pill pill-pre">締切前</span>'
+        : '<a class="oshi-result" href="'+resultUrl(x.jcd,x.hd,x.rno)+'" target="_blank" rel="noopener">🏁 結果 →</a>';
+      return '<div class="my-row"><div class="my-rl" data-open="'+esc(rkey(x.jcd,x.hd,x.rno))+'">'
+        +'<div class="my-rt">'+esc(x.name)+(nick?' <span class="oshi-nick">“'+esc(nick)+'”</span>':'')+'</div>'
+        +'<div class="my-rs">'+esc(x.venue)+' '+x.rno+'R｜締切 '+esc(x.deadline||"")+'</div></div>'+right+'</div>';
+    }).join("");
+  }
+  return h+'</div>';
+}
 
 function isClosed(hd,dl){
   var dm=toMin(dl); if(dm===null||!/^\d{8}$/.test(hd)) return false;
@@ -296,7 +580,7 @@ function renderVenues(app,crumb,keys){
   keys.forEach(function(k){ var v=venues[k]; (byDate[v.hd]=byDate[v.hd]||[]).push(v); });
   var dates=Object.keys(byDate).sort();
   var todayJST=(function(){ var n=nowJST(); return n.getUTCFullYear()+("0"+(n.getUTCMonth()+1)).slice(-2)+("0"+n.getUTCDate()).slice(-2); })();
-  var html="";
+  var html=buildOshiToday()+buildMyPanel()+buildFortune();
   dates.forEach(function(hd){
     var list=byDate[hd].sort(function(a,b){return a.jcd<b.jcd?-1:1;});
     var mm=hd.slice(4,6),dd=hd.slice(6,8);
@@ -315,6 +599,65 @@ function renderVenues(app,crumb,keys){
   app.innerHTML=html;
   Array.prototype.forEach.call(app.querySelectorAll(".venue-card"),function(el){
     el.onclick=function(){ view={page:"races",key:el.getAttribute("data-k"),rno:null,sort:view.sort}; render(); window.scrollTo(0,0); };
+  });
+  wireMyPanel(app);
+  wireFortune(app);
+}
+
+/* 「気になる/最近見た/回収」パネルのHTML */
+function buildMyPanel(){
+  pruneOld();
+  var harvest=harvestList();
+  var waiting=WATCH.filter(function(x){ return raceStatus(x.hd,x.deadline)==='pre'; });
+  var hset={}; harvest.forEach(function(x){ hset[rkey(x.jcd,x.hd,x.rno)]=1; });
+  var recent=VIEWED.filter(function(x){ return !hset[rkey(x.jcd,x.hd,x.rno)]; }).slice(0,8);
+  if(!harvest.length && !waiting.length && !recent.length) return "";
+  var h='<div class="my">';
+  if(harvest.length){
+    var oshiN=harvest.filter(function(x){return x.oshi;}).length;
+    h+='<div class="my-sec harvest"><div class="my-h">🏁 結果を見る<span class="cnt">'+harvest.length+'</span>'
+      +(oshiN?'<span class="oshi-cnt" style="margin-left:2px">⭐'+oshiN+'</span>':'')+'</div>'
+      +'<div class="my-note">締切を過ぎたレース。確定結果は公式ページで（発走直後は未掲示のことがあります）。</div>';
+    h+=harvest.map(function(x){
+      var k=rkey(x.jcd,x.hd,x.rno);
+      var title=(x.oshi?'⭐ ':'')+esc(x.venue)+' '+x.rno+'R';
+      var sub=x.oshi&&x.oshiNames.length?'推し '+esc(x.oshiNames.join("・"))+'｜締切 '+esc(x.deadline||"")
+                                        :esc(x.kikaku||"")+(x.kikaku?'｜':'')+'締切 '+esc(x.deadline||"");
+      return '<div class="my-row'+(x.oshi?' oshi-row':'')+'">'
+        +'<div class="my-rl" data-open="'+esc(k)+'"><div class="my-rt">'+title+'</div><div class="my-rs">'+sub+'</div></div>'
+        +'<a class="harvest-link" data-collect="'+esc(k)+'" href="'+resultUrl(x.jcd,x.hd,x.rno)+'" target="_blank" rel="noopener">🏁 公式結果 →</a>'
+        +'<button class="harvest-x" data-collect="'+esc(k)+'" title="確認済みにする">✓</button>'
+        +'</div>';
+    }).join("")+'</div>';
+  }
+  if(waiting.length){
+    h+='<div class="my-sec watch"><div class="my-h">🔖 気になる（締切前）</div>';
+    h+=waiting.map(function(x){
+      var k=rkey(x.jcd,x.hd,x.rno);
+      return '<div class="my-row"><div class="my-rl" data-open="'+esc(k)+'"><div class="my-rt">'+esc(x.venue)+' '+x.rno+'R</div><div class="my-rs">締切 '+esc(x.deadline||"")+'</div></div><span class="pill pill-pre">締切前</span></div>';
+    }).join("")+'</div>';
+  }
+  if(recent.length){
+    h+='<div class="my-sec recent"><div class="my-h">最近見た</div><div class="recent-chips">'
+      +recent.map(function(x){ return '<span class="rchip" data-open="'+esc(rkey(x.jcd,x.hd,x.rno))+'">'+esc(x.venue)+' '+x.rno+'R</span>'; }).join("")
+      +'</div></div>';
+  }
+  return h+'</div>';
+}
+function myOpen(k){
+  var p=String(k).split("_"); if(p.length<3) return;
+  var vkey=p[0]+"_"+p[1];
+  if(venues[vkey]){ view={page:"race",key:vkey,rno:parseInt(p[2]),sort:view.sort}; render(); window.scrollTo(0,0); }
+}
+function wireMyPanel(app){
+  Array.prototype.forEach.call(app.querySelectorAll("[data-open]"),function(el){
+    el.onclick=function(){ myOpen(el.getAttribute("data-open")); };
+  });
+  Array.prototype.forEach.call(app.querySelectorAll(".harvest-x"),function(el){
+    el.onclick=function(e){ e.stopPropagation(); var p=el.getAttribute("data-collect").split("_"); markCollected(p[0],p[1],p[2]); render(); };
+  });
+  Array.prototype.forEach.call(app.querySelectorAll(".harvest-link"),function(el){
+    el.onclick=function(){ var p=el.getAttribute("data-collect").split("_"); markCollected(p[0],p[1],p[2]); setTimeout(render,400); };
   });
 }
 
@@ -357,6 +700,39 @@ function kimariteBar(km){
     +'<div class="kmr-bar">'+segs+'</div><div class="kmr-legend">'+legend+'</div></div>';
 }
 
+/* E30該当場成績（この場がE30該当場のときのみ・事実の生データ・二層表示） */
+var E30_TECH=["逃げ","差し","まくり","まくり差し","抜き","恵まれ"];
+function e30Block(toban,jcd){
+  if(!E30||!E30META) return "";
+  if(!E30META.対象場||!E30META.対象場[jcd]) return "";   /* 該当場のみ */
+  var ep=E30[toban]; if(!ep) return "";
+  var courses=Object.keys(ep["コース別"]).map(Number).sort(function(a,b){return a-b;});
+  var w1=0,w2=0;
+  courses.forEach(function(c){ var r=ep["コース別"][c]; w1+=r["1着数"]; w2+=r["2連対数"]; });
+  var tot=ep["総出走数"], few=tot<10;
+  var rows=courses.map(function(c){
+    var r=ep["コース別"][c], rf=r["出走数"]<10;
+    var tech=E30_TECH.filter(function(t){return r["決まり手"][t];}).map(function(t){return t+r["決まり手"][t];}).join("・");
+    var st=(r["平均ST"]!=null)?r["平均ST"].toFixed(2):"-";
+    return '<div class="e30-row'+(rf?' dim':'')+'"><span class="c">'+c+'号</span>'
+      +'<span class="n">'+r["出走数"]+(rf?'<span class="e30-few">少</span>':'')+'</span>'
+      +'<span class="w1">'+r["1着数"]+'</span><span class="w2">'+r["2連対数"]+'</span>'
+      +'<span class="st">'+st+'</span><span class="tk">'+esc(tech||"-")+'</span></div>';
+  }).join("");
+  var per=E30META.期間, fmtP=function(d){return d?(d.slice(0,4)+"."+d.slice(4,6)+"."+d.slice(6,8)):"-";};
+  var venue=E30META.対象場[jcd]["場名"];
+  return '<details class="e30d"><summary>'
+    +'<span class="e30-badge">E30該当場</span>'
+    +'<span class="e30-sum">当地'+esc(venue)+'含む該当場 <b>'+tot+'</b>走 ・ 1着<b>'+w1+'</b> ・ 2連対<b>'+w2+'</b>'+(few?'<span class="e30-few"> N少</span>':'')+'</span>'
+    +'<span class="e30-caret"></span></summary>'
+    +'<div class="e30-body">'
+    +'<div class="e30-row hd"><span class="c">コース</span><span class="n">出走</span><span class="w1">1着</span><span class="w2">2連対</span><span class="st">平均ST</span><span class="tk">決まり手</span></div>'
+    +rows
+    +'<div class="e30-note">E30該当場（'+esc(Object.keys(E30META.対象場).map(function(k){return E30META.対象場[k]["場名"];}).join("・"))+'）通算の進入コース別・生データ。'
+    +(per?fmtP(per["開始"])+'〜'+fmtP(per["終了"]):'')+'。1着の決まり手内訳を併記。平均STはF/欠場等を除外。N数の小さいコースは参考値。出典：'+esc(E30META.出典||"BoatraceOpenAPI/resultsミラー（mbrace由来）")+'。</div>'
+    +'</div></details>';
+}
+
 /* 今節成績ミニテーブル（進入/着、着色） */
 var SHU_COLS=["1日目成績","2日目成績","3日目成績","4日目成績","5日目成績","6日目成績"];
 var SHU_LABELS=["初日","2日","3日","4日","5日","最終"];
@@ -382,6 +758,7 @@ function shuTable(row){
 function renderRace(app,crumb,v){
   var rc=v.races[view.rno];
   if(!rc){ view={page:"races",key:view.key,sort:view.sort}; render(); return; }
+  recordViewed(v,view.rno);   /* 見たレースを記憶（回収ループの起点） */
   crumb.innerHTML='<a href="#" id="back0">場一覧</a> ＞ <a href="#" id="back1">'+esc(v.name)+'</a> ＞ '+view.rno+'R';
   /* 見どころ結合は開催日一致時のみ（stale/翌日データの誤結合を防止） */
   var hlKey=v.jcd+"_"+view.rno+"R";
@@ -397,16 +774,17 @@ function renderRace(app,crumb,v){
   else { cdCls="cd-open"; cdTxt="締切まで"+fmtMins(mins); }
   var cdHtml=cdTxt?'<span class="cd '+cdCls+'">'+esc(cdTxt)+'</span>':'';
 
-  /* 公式リンク（出走表・結果）。結果は締切後を金CTA、締切前は確定待ちの淡色表示 */
-  var links="";
+  /* 気になる（記憶）＋公式リンク（出走表・結果） */
+  var wOn=isWatched(v.jcd,v.hd,view.rno);
+  var wbtn='<span class="watchbtn'+(wOn?' on':'')+'" id="watchbtn">'+(wOn?'✅ 追加済み':'🔖 気になる')+'</span>';
+  var off="";
   if(/^\d{8}$/.test(v.hd)){
     var base="https://www.boatrace.jp/owpc/pc/race/", q="?rno="+view.rno+"&jcd="+v.jcd+"&hd="+v.hd;
     var closed=isClosed(v.hd,rc.deadline);
-    links='<div class="race-links">'
-      +'<a class="offlink '+(closed?"offlink-result":"offlink-pend")+'" href="'+base+'raceresult'+q+'" target="_blank" rel="noopener">🏁 '+(closed?"レース結果（公式）":"結果（締切後に確定）")+' ↗</a>'
-      +'<a class="offlink offlink-card" href="'+base+'racelist'+q+'" target="_blank" rel="noopener">公式出走表 ↗</a>'
-      +'</div>';
+    off='<a class="offlink '+(closed?"offlink-result":"offlink-pend")+'" href="'+base+'raceresult'+q+'" target="_blank" rel="noopener">🏁 '+(closed?"レース結果（公式）":"結果（締切後に確定）")+' ↗</a>'
+      +'<a class="offlink offlink-card" href="'+base+'racelist'+q+'" target="_blank" rel="noopener">公式出走表 ↗</a>';
   }
+  var links='<div class="race-links">'+wbtn+off+'</div>';
   var html='<div class="race-head"><div class="line1"><span class="rt">'+esc(v.name)+' '+view.rno+'R</span><span class="kikaku">'+esc(rc.kikaku)+'</span></div>'
     +'<div class="dl">'+cdHtml+'<span>締切 '+esc(rc.deadline||"-")+'</span><span>'+esc(v.setsu)+' '+esc(v.day)+'</span></div>'
     +links+'</div>';
@@ -469,6 +847,11 @@ function renderRace(app,crumb,v){
   Array.prototype.forEach.call(app.querySelectorAll(".sortbtn"),function(el){
     el.onclick=function(){ view.sort=el.getAttribute("data-s"); render(); };
   });
+  var wb=document.getElementById("watchbtn");
+  if(wb) wb.onclick=function(){ toggleWatch(v,view.rno); render(); };
+  Array.prototype.forEach.call(app.querySelectorAll(".oshibtn"),function(el){
+    el.onclick=function(e){ e.stopPropagation(); toggleOshi(el.getAttribute("data-toban"),el.getAttribute("data-name")); render(); };
+  });
 }
 
 function boatCard(row,v,hl,minST,maxST,maxMotor){
@@ -517,11 +900,13 @@ function boatCard(row,v,hl,minST,maxST,maxMotor){
   var nameHtml=toban
     ?'<a class="pname" href="../players/?toban='+esc(toban)+'" style="color:inherit;text-decoration:none;">'+esc(name)+'<span class="badge-detail">詳細</span></a>'
     :'<span class="pname">'+esc(name)+'</span>';
+  var oshi=isOshi(toban);
+  var oshiBtn=toban?'<span class="oshibtn'+(oshi?' on':'')+'" data-toban="'+esc(toban)+'" data-name="'+esc(name)+'" title="推しフォロー">'+(oshi?'⭐':'☆')+'</span>':'';
 
-  return '<div class="boat"><div class="lane-bar" style="background:'+lc[0]+'"></div><div class="boat-body">'
+  return '<div class="boat'+(oshi?' oshi-on':'')+'"><div class="lane-bar" style="background:'+lc[0]+'"></div><div class="boat-body">'
     +'<div class="boat-top">'
     +'<span class="lane-num" style="background:'+lc[0]+';color:'+lc[1]+';'+((lane===1||lane===2)?'border:1px solid #445;':'')+'">'+lane+'</span>'
-    +'<span class="klass k-'+esc(kl)+'">'+esc(kl)+'</span>'+nameHtml+badges
+    +'<span class="klass k-'+esc(kl)+'">'+esc(kl)+'</span>'+nameHtml+badges+oshiBtn
     +'</div>'
     +(nick?'<div class="nick">“'+esc(nick)+'”</div>':'')
     +'<div class="boat-sub">'+esc(g(row,"支部"))+'／'+esc(g(row,"出身"))+'・'+esc(g(row,"年齢"))+'歳</div>'
@@ -533,6 +918,7 @@ function boatCard(row,v,hl,minST,maxST,maxMotor){
     +'</div>'
     +meter
     +kimariteBar(km)
+    +e30Block(toban,v.jcd)
     +shuTable(row)
     +'</div></div>';
 }
@@ -541,6 +927,43 @@ function rerender(){ render(); }
 render();
 /* 締切カウントダウンを毎分更新（race画面のみ再描画） */
 setInterval(function(){ if(view.page==="race") render(); }, 30000);
+</script>
+<script>
+/* PWA: Service Worker 登録 ＋「ホーム画面に追加」導線 */
+(function(){
+  if("serviceWorker" in navigator){
+    window.addEventListener("load",function(){ navigator.serviceWorker.register("/boatrace/sw.js").catch(function(){}); });
+  }
+  var el=document.getElementById("a2hs");
+  if(!el) return;
+  function standalone(){ return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone===true; }
+  function dismissed(){ try{ return localStorage.getItem("br_a2hs")==="1"; }catch(e){ return false; } }
+  function dismiss(){ try{ localStorage.setItem("br_a2hs","1"); }catch(e){} el.hidden=true; }
+  if(standalone()||dismissed()) return;
+  var ICON='<img src="/boatrace/icon180.png" alt="">';
+  var deferred=null;
+  window.addEventListener("beforeinstallprompt",function(ev){
+    ev.preventDefault(); deferred=ev;
+    el.innerHTML=ICON+'<div class="a2t"><b>ホーム画面に追加</b>：アプリのように1タップで開けます。</div>'
+      +'<button class="a2add" id="a2add">追加</button><button class="a2x" id="a2x">×</button>';
+    el.hidden=false;
+    document.getElementById("a2x").onclick=dismiss;
+    document.getElementById("a2add").onclick=function(){
+      el.hidden=true; deferred.prompt();
+      deferred.userChoice.finally(function(){ deferred=null; dismiss(); });
+    };
+  });
+  // iOS Safari は beforeinstallprompt が無いので手順を案内
+  var ua=navigator.userAgent||"";
+  var isIOS=/iPhone|iPad|iPod/.test(ua) && !window.MSStream;
+  var isSafari=/Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+  if(isIOS && isSafari){
+    el.innerHTML=ICON+'<div class="a2t"><b>ホーム画面に追加</b>：共有 <span style="font-size:14px">⬆️</span> →「ホーム画面に追加」でアプリのように使えます。</div>'
+      +'<button class="a2x" id="a2x">×</button>';
+    el.hidden=false;
+    document.getElementById("a2x").onclick=dismiss;
+  }
+})();
 </script>
 </body>
 </html>
