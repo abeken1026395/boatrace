@@ -1,0 +1,74 @@
+name: 観戦記 執筆漏れ警報
+
+# 【段階C】朝、掲載日なのに当日掲載の記事が1本も無く、未マージの記事PRも無い＝執筆漏れを
+# GitHub Issue で起票して知らせる（ラベル kansenki-missing）。冪等：同じ掲載日のOpen Issueが
+# あれば起票しない。網羅性チェック（部分欠け）とは別＝こちらは「全欠＝未着手」の検知。
+on:
+  schedule:
+    - cron: "30 22 * * *"   # JST 07:30
+  workflow_dispatch:
+    inputs:
+      pubdate:
+        description: "点検する掲載日(YYYYMMDD)。空欄なら highlights.json の開催日。"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: kansenki-missing-alarm
+  cancel-in-progress: false
+
+jobs:
+  alarm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: detect missing
+        id: d
+        run: |
+          PUB="${{ github.event.inputs.pubdate }}"
+          if [ -z "$PUB" ]; then
+            PUB=$(python -c "import json;print(json.load(open('docs/highlights/highlights.json')).get('開催日',''))")
+          fi
+          echo "pubdate=$PUB" >> "$GITHUB_OUTPUT"
+          MISS=0
+          if [ -n "$PUB" ] && [ -f "docs/data/kansenki/source/${PUB}.json" ]; then
+            if ! ls docs/data/kansenki/articles/${PUB}-*.json >/dev/null 2>&1; then
+              # 記事0本。未マージ記事PR（ブランチ kansenki/PUB）が無ければ執筆漏れ。
+              if ! git ls-remote --exit-code --heads origin "kansenki/${PUB}" >/dev/null 2>&1; then
+                MISS=1
+              fi
+            fi
+          fi
+          echo "missing=$MISS" >> "$GITHUB_OUTPUT"
+          # 期待場一覧（Issue本文用）
+          if [ "$MISS" = "1" ]; then
+            python -c "import json;d=json.load(open('docs/data/kansenki/source/${PUB}.json'));print(' '.join('%s%s'%(v['jcd'],v.get('venue','')) for v in d.get('venues',[])))" > /tmp/venues.txt || echo "" > /tmp/venues.txt
+          fi
+          echo "掲載日=${PUB} missing=${MISS}"
+
+      - name: open issue (idempotent)
+        if: steps.d.outputs.missing == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PUB="${{ steps.d.outputs.pubdate }}"
+          gh label create kansenki-missing --color B60205 --description "観戦記の執筆漏れ" 2>/dev/null || true
+          # 冪等: 同じ掲載日のOpen Issueがあれば起票しない
+          EXIST=$(gh issue list --label kansenki-missing --state open --search "$PUB in:title" --json number --jq 'length' 2>/dev/null || echo 0)
+          if [ "${EXIST:-0}" != "0" ]; then
+            echo "既にOpen Issueあり（掲載日 ${PUB}）→ 起票しない"; exit 0
+          fi
+          VEN=$(cat /tmp/venues.txt 2>/dev/null || echo "")
+          gh issue create \
+            --title "観戦記 執筆漏れ: ${PUB} 掲載分が未着手" \
+            --label kansenki-missing \
+            --body "$(printf '掲載日 %s の観戦記が1本も生成されておらず、未マージの記事PR（kansenki/%s）もありません。\n\nsource は存在します（対象場: %s）。\n\n対応: writeKansenki を起動して執筆→PR、または手動執筆。lint 全場PASS を確認のうえ人がマージ＝公開してください。\n（この Issue は執筆漏れ検知の自動起票です。記事PRが出れば次回は起票されません。）' "$PUB" "$PUB" "$VEN")"
+          echo "起票しました（掲載日 ${PUB}）"
