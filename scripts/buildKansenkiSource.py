@@ -744,6 +744,21 @@ def null_merge(old, new):
     return old  # 非null leaf は不変
 
 
+def supplement_venue(old_v, new_v):
+    """既存venueへの補完（段階2(a)・C案）。
+    基本は null_merge（非null不変）。加えて resultsブロックだけ『空[]→非null』の順次補完を許可する。
+    前日結果が後便で到着したときに、先便で空[]だった results/resultsSummary を埋めるための
+    局所拡張。null_merge本体・他フィールドの§4.1(非null不変)は不変。
+    ※上書きは『空→非null』の一方向のみ。既存に非nullのresultsがあれば不変。"""
+    merged = null_merge(old_v, new_v)
+    old_results = (old_v or {}).get("results")
+    new_results = (new_v or {}).get("results")
+    if (not old_results) and new_results:      # 空[]/None → 非null のときだけ
+        merged["results"] = new_results
+        merged["resultsSummary"] = new_v.get("resultsSummary")
+    return merged
+
+
 # ---------------------------------------------------------------------------
 # 第2部「きょうの注目」用 当日番組概要（段階2(b)）
 # ---------------------------------------------------------------------------
@@ -912,7 +927,7 @@ def main():
         merged = []
         for v in venues:
             ov = old_by_jcd.get(v["jcd"])
-            merged.append(null_merge(ov, v) if ov else v)
+            merged.append(supplement_venue(ov, v) if ov else v)
         # 既存にしか無いvenueも保持
         seen = {v["jcd"] for v in venues}
         for ov in existing.get("venues", []):
