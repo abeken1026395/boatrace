@@ -28,6 +28,18 @@ OUT_PATH = os.path.join("docs", "data", "deadlines_tomorrow.txt")
 SLOT_ORDER = ["モーニング", "デイ", "ナイター", "ミッドナイト"]
 SLOT_LABEL = {s: "【{}】".format(s) for s in SLOT_ORDER}
 
+# メッセージ末尾の定型文（部屋のルール）。
+FOOTER = [
+    "↓レース話はこちらのスレッドからお願いします！",
+    "はじめましての方はメインで特典回収と自己紹介後に参加お願いします",
+    "理由は誰か分からんからです🙇‍♂️",
+    "とにかくルール熟読を",
+    "「マナー」なき方はお断りします。",
+    "乗っかり部屋ではないので、当たったらせめてお礼は言いましょう。",
+    "責めるのは禁止です。",
+    "「モラル」は無い方が良いです。",
+]
+
 
 def target_hd():
     v = os.environ.get("DEADLINE_DATE", "").strip()
@@ -102,7 +114,7 @@ def build_message(hd, venues):
             pad = "　" * (width - len(name))
             lines.append("{}{}　{}〜{}".format(name, pad, fmt_time(fmin), fmt_time(lmax)))
         lines.append("")
-    lines.append("↓レース話はこちらのスレッドからお願いします！")
+    lines.extend(FOOTER)
     return "\n".join(lines)
 
 
