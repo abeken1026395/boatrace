@@ -23,7 +23,9 @@ body {
   color: #e0e6ed; min-height: 100vh;
   display: flex; flex-direction: column; align-items: center;
   padding: 40px 16px 60px;
+  position: relative;
 }
+.byline { position:absolute; top:10px; right:12px; font-size:10px; color:#8a94a3; letter-spacing:.3px; z-index:5; pointer-events:none; }
 .title { font-size: 72px; font-weight: 900; letter-spacing: 4px; color: #cdd6e0; text-align:center; line-height:1.05; white-space:nowrap; }
 .subtitle { font-size: 13px; color: #6b7f95; margin-top: 8px; text-align:center; letter-spacing:1px; }
 .subtitle .en { font-size: 11px; color:#54687d; letter-spacing:2px; text-transform:uppercase; }
@@ -99,9 +101,11 @@ body {
 }
 .pwa-hint b { color:#cdd6e0; font-weight:700; }
 .footer { margin-top:40px; font-size:11px; color:#4a6070; text-align:center; line-height:1.7; max-width:560px; }
+.footer-sign { margin-top:10px; font-size:10px; color:#8a94a3; text-align:center; letter-spacing:.3px; }
 </style>
 </head>
 <body>
+  <div class="byline">by あべけん</div>
   <div class="title">データ攻め</div>
   <div class="subtitle"><span class="en">boatrace data</span> ─ 今日も、読んでから。</div>
 
@@ -216,6 +220,7 @@ body {
     買い目は出しません。判断するのは、あなた。<br>
     毎朝、開催前に数字だけ更新されます。
   </div>
+  <div class="footer-sign">あべけんが、毎朝更新しています。</div>
 <script>
 // 信頼バーを verify_summary.json から自動反映（集計終了日を正直に表示）。
 // 失敗時はHTMLの固定値をそのまま残す。SWキャッシュ回避のためクエリを付与。
