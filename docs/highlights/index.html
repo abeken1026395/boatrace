@@ -164,7 +164,7 @@ h1{font-size:22px;font-weight:800;margin-top:4px;display:flex;align-items:baseli
 .vnext{font-size:11px;color:var(--sub);margin:3px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .part-badge{display:inline-block;font-size:10px;font-weight:800;color:#04121f;background:#e0b64a;border-radius:6px;padding:2px 7px}
 /* レース・アコーディオン（場別／波乱・堅め 共用） */
-.race{background:var(--panel);border:1px solid var(--line);border-radius:13px;margin-bottom:9px;overflow:hidden}
+.race{background:var(--panel);border:1px solid var(--line);border-radius:13px;margin-bottom:9px;overflow:hidden;scroll-margin-top:64px}
 .race.open{border-color:var(--acc)}
 .rhead{padding:11px 13px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .rhead:focus-visible{outline:2px solid var(--acc2);outline-offset:-2px}
@@ -177,6 +177,14 @@ h1{font-size:22px;font-weight:800;margin-top:4px;display:flex;align-items:baseli
 .rmitate .mt-txt{flex:1}
 .rbody{padding:2px 13px 13px}
 .rbody[hidden]{display:none}
+/* 場内レースナビ（R番号チップ・場別タブのみ） */
+.rchips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 11px;max-height:74px;overflow:hidden}
+.rchip{position:relative;min-width:30px;height:30px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt);font-weight:800;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:1px;-webkit-tap-highlight-color:transparent;font-variant-numeric:tabular-nums}
+.rchip:active{opacity:.7}
+.rchip:focus-visible{outline:2px solid var(--acc2);outline-offset:1px}
+.rchip.past{color:var(--sub);background:var(--panel2);opacity:.55}
+.rchip.hot{border-color:rgba(255,209,102,.55)}
+.rchip-mk{font-size:9px;color:var(--acc);line-height:1}
 </style>
 </head>
 <body>
@@ -360,6 +368,7 @@ function renderCard(r, ctx){
 function sw(v){VIEW=v;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));document.getElementById('sortbar').style.display=(v==='all')?'none':'flex';render();}
 function ss(s){SORT=s;document.querySelectorAll('.sortbtn').forEach(t=>t.classList.toggle('on',t.dataset.s===s));render();}
 function dl2min(hhmm){if(!hhmm||hhmm.indexOf(':')<0)return 99999;const p=hhmm.split(':');return (+p[0])*60+(+p[1]);}
+function nowMinJST(){const d=new Date();return (d.getUTCHours()*60+d.getUTCMinutes()+540)%1440;}  // JSTの現在分（TZ非依存）
 
 let OPEN_VENUE=null;  // 場別アコーディオンで開いている場
 function toggleVenue(ba){OPEN_VENUE = (OPEN_VENUE===ba)? null : ba; render();}
@@ -382,6 +391,15 @@ document.addEventListener('click',function(e){
   const rh=e.target.closest('.rhead');
   if(!rh) return;
   toggleRace(rh.dataset.uid, rh.closest('.race'));
+});
+document.addEventListener('click',function(e){
+  const chip=e.target.closest('.rchip');
+  if(!chip) return;
+  const uid=chip.dataset.target;
+  const race=document.querySelector('.race[data-uid="'+uid+'"]');
+  if(!race) return;
+  if(!OPEN_RACES.has(uid)) toggleRace(uid, race);   // 未展開なら既存トグルで展開
+  race.scrollIntoView({behavior:'smooth', block:'start'});  // 既に開いていればスクロールのみ
 });
 document.addEventListener('keydown',function(e){
   const t=e.target;
@@ -485,6 +503,21 @@ function renderVenues(){
       if(up||pr) nextLine=`<div class="vnext">${up?`<span>${up}</span>`:''}${pr}</div>`;
     }
     const kskCard=(KANSENKI&&KANSENKI[v.code])?renderKansenki(KANSENKI[v.code], v.code):'';  // 記事が無い場は静かに欠番
+    let chipBar='';
+    if(open){
+      const isToday=(SRC==='highlights.json' && !ISNEXT);   // 締切過ぎグレーは当日のみ
+      const nm=nowMinJST();
+      const maxH=Math.max.apply(null, races.map(r=>r['波乱']||0));
+      let hotDone=false;
+      chipBar=`<div class="rchips" role="group" aria-label="${ba} レース頭出し">`+races.map(r=>{
+        const n=parseInt(r['レース']);
+        const uid=r['場コード']+'_'+r['レース'];
+        const past=isToday && dl2min(r['締切時刻'])<nm;
+        const isHot=(!hotDone && maxH>=2 && (r['波乱']||0)===maxH);  // その場で最高波乱の1Rだけ⚡
+        if(isHot) hotDone=true;
+        return `<button class="rchip${past?' past':''}${isHot?' hot':''}" data-target="${uid}" aria-label="${n}Rへ移動">${n}${isHot?'<span class="rchip-mk" aria-hidden="true">⚡</span>':''}</button>`;
+      }).join('')+`</div>`;
+    }
     return `<div class="venue">
       <div class="vhead${open?' open':''}" onclick="toggleVenue('${ba}')">
         <span class="vname">${ba}</span>
@@ -492,7 +525,7 @@ function renderVenues(){
         <span class="varrow">${open?'▲':'▼'}</span>
       </div>
       ${setsuLine}${nextLine}
-      ${open?`<div class="vbody">${kskCard}${races.map(r=>renderCard(r,'venue')).join('')}</div>`:''}
+      ${open?`<div class="vbody">${chipBar}${kskCard}${races.map(r=>renderCard(r,'venue')).join('')}</div>`:''}
     </div>`;
   }).join('');
 }
