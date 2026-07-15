@@ -1,9 +1,12 @@
+<!-- データ攻め by あべけん https://abeken1026395.github.io/lumen-vortax-4z2/ -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta name="robots" content="noindex, nofollow">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="あべけん（データ攻め）">
+<link rel="canonical" href="https://abeken1026395.github.io/lumen-vortax-4z2/">
 <title>データ攻め｜今日も、読んでから。</title>
 <meta name="description" content="買い目も予想も出さない競艇データサイト。出走表・モーター・24場特性・払戻を毎朝更新。53,142レースで自己採点を継続中。">
 <meta property="og:title" content="データ攻め">
@@ -23,7 +26,9 @@ body {
   color: #e0e6ed; min-height: 100vh;
   display: flex; flex-direction: column; align-items: center;
   padding: 40px 16px 60px;
+  position: relative;
 }
+.byline { position:absolute; top:10px; right:12px; font-size:10px; color:#8a94a3; letter-spacing:.3px; z-index:5; pointer-events:none; }
 .title { font-size: 72px; font-weight: 900; letter-spacing: 4px; color: #cdd6e0; text-align:center; line-height:1.05; white-space:nowrap; }
 .subtitle { font-size: 13px; color: #6b7f95; margin-top: 8px; text-align:center; letter-spacing:1px; }
 .subtitle .en { font-size: 11px; color:#54687d; letter-spacing:2px; text-transform:uppercase; }
@@ -99,9 +104,13 @@ body {
 }
 .pwa-hint b { color:#cdd6e0; font-weight:700; }
 .footer { margin-top:40px; font-size:11px; color:#4a6070; text-align:center; line-height:1.7; max-width:560px; }
+.footer-sign { margin-top:12px; font-size:10px; color:#8a94a3; text-align:center; letter-spacing:.3px; }
+.footer-sign a { color:#9aa4b3; text-decoration:underline; }
+.footer-sign a:hover { color:#cdd6e0; }
 </style>
 </head>
 <body>
+  <div class="byline">by あべけん</div>
   <div class="title">データ攻め</div>
   <div class="subtitle"><span class="en">boatrace data</span> ─ 今日も、読んでから。</div>
 
@@ -117,6 +126,7 @@ body {
     <a href="./uranai/"><span class="qn-ico">🔮</span><span class="qn-lb">占い</span></a>
     <a href="./announcers/"><span class="qn-ico">🎙️</span><span class="qn-lb">実況アナ</span></a>
     <a href="./glossary/"><span class="qn-ico">📖</span><span class="qn-lb">用語辞書</span></a>
+    <a href="https://www.youtube.com/@abe-ken" target="_blank" rel="noopener"><span class="qn-ico">▶️</span><span class="qn-lb">YouTube</span></a>
   </nav>
 
   <div class="trustbar">
@@ -216,6 +226,7 @@ body {
     買い目は出しません。判断するのは、あなた。<br>
     毎朝、開催前に数字だけ更新されます。
   </div>
+  <div class="footer-sign">© 2026 データ攻め ── 制作・運営 <a href="https://www.youtube.com/@abe-ken" target="_blank" rel="noopener">あべけん</a></div>
 <script>
 // 信頼バーを verify_summary.json から自動反映（集計終了日を正直に表示）。
 // 失敗時はHTMLの固定値をそのまま残す。SWキャッシュ回避のためクエリを付与。
