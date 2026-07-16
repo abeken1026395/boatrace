@@ -30,6 +30,7 @@
 #   セレクタ table.is-w748 とtd位置は推定を含むため、名前セル(登番リンク)を基準に相対で拾う堅牢版。
 import os
 import re
+import sys
 import json
 import time
 import datetime
@@ -72,9 +73,11 @@ def _cell_text(td):
 
 def parse_beforeinfo(html):
     """beforeinfo のHTMLから各艇の情報を返す。
-    返り値: [{枠, 登番, 体重, 展示タイム, チルト, プロペラ変更(bool), 部品交換(str)}]
-    名前セル（profile?toban=リンク）を基準に、体重→展示→チルト→プロペラ→部品交換を相対で拾う。
-    読めない項目は空。部品交換が空欄なら空文字（＝交換なし）。"""
+    返り値: [{枠, 登番, 氏名, 体重, 展示タイム, チルト, プロペラ(str), 部品交換(str)}]
+    name_idx（登番リンクを含むtd）自体は「写真」セルを指しており、実データは
+    name_idx+1以降に並ぶ（写真｜ボートレーサー｜体重｜展示タイム｜チルト｜プロペラ｜部品交換）。
+    読めない項目は空。部品交換・プロペラが空欄なら空文字（＝交換なし）。
+    プロペラは bool に潰さず、読めた文字列（交換時は「新」等）をそのまま保持する。"""
     soup = BeautifulSoup(html, "html.parser")
     out = []
     for tbody in soup.find_all("tbody"):
@@ -82,7 +85,7 @@ def parse_beforeinfo(html):
         if not tr:
             continue
         tds = tr.find_all("td", recursive=False)
-        # 名前セル（登番リンクを含むtd）の位置を探す
+        # 名前セル（登番リンクを含むtd＝写真セル）の位置を探す
         name_idx = None
         toban = ""
         for i, td in enumerate(tds):
@@ -102,25 +105,58 @@ def parse_beforeinfo(html):
             if re.fullmatch(r"[1-6]", t):
                 waku = t
                 break
-        # 名前セル基準の相対列：+1体重 +2展示 +3チルト +4プロペラ +5部品交換
+        # 写真セル(name_idx)基準の相対列：+1氏名 +2体重 +3展示 +4チルト +5プロペラ +6部品交換
         def rel(k):
             idx = name_idx + k
             return _cell_text(tds[idx]) if 0 <= idx < len(tds) else ""
-        weight = rel(1)     # 体重
-        tenji = rel(2)      # 展示タイム
-        tilt = rel(3)       # チルト
-        propeller = rel(4)  # プロペラ列（変更時「新」）
-        parts = rel(5)      # 部品交換（空欄＝交換なし）
+        name = rel(1)        # 氏名
+        weight = rel(2)      # 体重
+        tenji = rel(3)       # 展示タイム
+        tilt = rel(4)        # チルト
+        propeller = rel(5)   # プロペラ（交換時「新」等。空欄＝交換なし）
+        parts = rel(6)       # 部品交換（空欄＝交換なし）
         out.append({
             "枠": waku,
             "登番": toban,
+            "氏名": name,
             "体重": weight,
             "展示タイム": tenji,
             "チルト": tilt,
-            "プロペラ変更": ("新" in propeller),
+            "プロペラ": propeller,
             "部品交換": parts,
         })
     return out
+
+
+def _looks_numeric(s):
+    try:
+        float(s)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def assert_row_sane(jcd, rno, row):
+    """列オフセット再発防止の機械ゲート。1つでも該当したら全フィールドをログに出し実行を失敗させる。"""
+    weight = str(row.get("体重", ""))
+    tenji = str(row.get("展示タイム", ""))
+    name = str(row.get("氏名", "")).strip()
+    problems = []
+    if "kg" not in weight:
+        problems.append("体重に'kg'が含まれない: {!r}".format(weight))
+    if "kg" in tenji:
+        problems.append("展示タイムに'kg'が含まれる: {!r}".format(tenji))
+    elif tenji.strip() and not _looks_numeric(tenji):
+        problems.append("展示タイムが数値として解釈できない: {!r}".format(tenji))
+    if name and re.fullmatch(r"[0-9]+", name):
+        problems.append("氏名が数値のみ: {!r}".format(name))
+    if problems:
+        print("[FATAL] 列オフセット異常を検知 jcd={} rno={}".format(jcd, rno))
+        for k, v in row.items():
+            print("  {} = {!r}".format(k, v))
+        for p in problems:
+            print("  -> ", p)
+        sys.exit(1)
 
 
 def _query_dict(url):
@@ -305,6 +341,7 @@ def main():
         fetched_races += 1
         vname = JCD_NAME.get(jcd, "")
         for row in rows:
+            assert_row_sane(jcd, rno, row)  # 列オフセット異常を検知したら即失敗（既存ファイル未書換）
             if not str(row["展示タイム"]).strip():
                 skipped_empty_tenji += 1
                 continue  # 展示タイム空＝未公開/欠場のため保存しない
@@ -312,7 +349,7 @@ def main():
             if key in seen:
                 continue  # 二重積み防止
             info = racer_map.get((jcd, row["登番"]), {})
-            name = name_map.get((jcd, row["登番"])) or info.get("氏名", "")
+            name = name_map.get((jcd, row["登番"])) or info.get("氏名", "") or row["氏名"]
             rec = {
                 "jcd": jcd,
                 "場名": vname,
@@ -326,7 +363,7 @@ def main():
                 "部品交換": row["部品交換"],
                 "展示タイム": row["展示タイム"],
                 "チルト": row["チルト"],
-                "プロペラ変更": row["プロペラ変更"],
+                "プロペラ": row["プロペラ"],
                 "体重": row["体重"],
                 "出典URL": url,
                 "取得日時": datetime.datetime.now(JST).strftime("%Y-%m-%d %H:%M"),
