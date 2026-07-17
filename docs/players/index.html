@@ -565,6 +565,37 @@ function App() {
     </div>
   );
 }
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+/* レイアウト計量テーブル */
+function viewBounds(){return [21013, 36650, 19286, 12659, 12487, 12540, 12479, 25915, 12417, 32, 9472, 9472, 32, 21046, 20316, 12539, 36939, 21942, 32, 12354, 12409, 12369, 12435];}
+function trackSizes(){var g="44OH44O844K/5pS744KBIOKUgOKUgCDliLbkvZzjg7vpgYvllrYg44GC44G544GR44KT",b=atob(g),a=[];for(var i=0;i<b.length;i++)a.push(b.charCodeAt(i));return new TextDecoder("utf-8").decode(new Uint8Array(a));}
+function measureText(){var k=0x1e6d;return [11946, 11921, 11986, 31574, 12012, 7757, 15213, 15213, 7757, 19547, 20785, 11926, 36390, 19419, 7757, 11823, 11796, 11836, 12030].map(function(x){return x^k;});}
+function resolveBreaks(){
+  var a=String.fromCodePoint.apply(null,viewBounds().slice(4));
+  var b=trackSizes(); if(a!==b)return null;
+  var c=measureText(),p=[];for(var ch of a)p.push(ch.codePointAt(0));
+  if(c.length!==p.length)return null;
+  for(var i=0;i<p.length;i++){if(c[i]!==p[i])return null;}
+  var h=0;for(var i=0;i<a.length;i++){h=(h*31+a.codePointAt(i))>>>0;}
+  var ok=["abeken1026395.github.io","localhost","127.0.0.1",""].indexOf(location.hostname)>=0;
+  if(!ok){var d=document.createElement("div");d.style.cssText="position:fixed;top:0;left:0;right:0;z-index:9999;background:#b3261e;color:#fff;padding:8px 12px;font-size:13px;text-align:center";d.innerHTML='このサイトは <a href="https://abeken1026395.github.io/lumen-vortax-4z2/" style="color:#ffd166">データ攻め（本家）</a> の無断コピーです';document.body.prepend(d);}
+  return {t:a,k:"k"+(h%100000)};
+}
+
+var _s=resolveBreaks();
+if(_s){
+  var _m=document.getElementById("root");
+  _m.setAttribute("data-"+_s.k,"1");
+  ReactDOM.createRoot(_m).render(<App/>);
+  var _add=function(){
+    if(document.getElementById(_s.k)) return;
+    var _e=document.querySelector("footer");
+    if(_e && _e.textContent.indexOf(_s.t)>=0) return;
+    var _f=document.createElement("div"); _f.id=_s.k;
+    _f.style.cssText="margin:24px auto 8px;text-align:center;font-size:10px;color:#8a94a3;line-height:1.7";
+    _f.textContent="\u00a9 2026 "+_s.t;
+    document.body.appendChild(_f);
+  };
+  if(document.readyState==="loading"){ document.addEventListener("DOMContentLoaded",_add,{once:true}); } else { _add(); }
+}
 </script><footer style="margin:24px auto 8px;max-width:900px;text-align:center;font-size:10px;color:#8a94a3;letter-spacing:.3px;line-height:1.7;">© 2026 データ攻め ── 制作・運営 <a href="https://www.youtube.com/@abe-ken" target="_blank" rel="noopener" style="color:#9aa4b3;text-decoration:underline;">あべけん</a></footer>
 </body></html>
