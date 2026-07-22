@@ -4,12 +4,12 @@
   "threshold": 10000,
   "period": {
     "from": "2025/07/15",
-    "to": "2026/07/21",
-    "days": 372
+    "to": "2026/07/22",
+    "days": 373
   },
   "venueCount": 24,
-  "totalRaces": 55874,
-  "manTotal": 9277,
+  "totalRaces": 56017,
+  "manTotal": 9303,
   "topPayouts": [
     {
       "stadium": "常滑",
@@ -107,8 +107,8 @@
       "stadium": "鳴門",
       "jcd": 14,
       "slug": "naruto",
-      "races": 2191,
-      "manCount": 427,
+      "races": 2203,
+      "manCount": 430,
       "manRate": 19.5
     },
     {
@@ -131,16 +131,16 @@
       "stadium": "三国",
       "jcd": 10,
       "slug": "mikuni",
-      "races": 2255,
-      "manCount": 420,
-      "manRate": 18.6
+      "races": 2267,
+      "manCount": 423,
+      "manRate": 18.7
     },
     {
       "stadium": "児島",
       "jcd": 16,
       "slug": "kojima",
-      "races": 2242,
-      "manCount": 401,
+      "races": 2254,
+      "manCount": 403,
       "manRate": 17.9
     },
     {
@@ -168,11 +168,19 @@
       "manRate": 17.3
     },
     {
+      "stadium": "丸亀",
+      "jcd": 15,
+      "slug": "marugame",
+      "races": 2442,
+      "manCount": 420,
+      "manRate": 17.2
+    },
+    {
       "stadium": "多摩川",
       "jcd": 5,
       "slug": "tamagawa",
-      "races": 2359,
-      "manCount": 404,
+      "races": 2371,
+      "manCount": 405,
       "manRate": 17.1
     },
     {
@@ -180,14 +188,6 @@
       "jcd": 12,
       "slug": "suminoe",
       "races": 2428,
-      "manCount": 416,
-      "manRate": 17.1
-    },
-    {
-      "stadium": "丸亀",
-      "jcd": 15,
-      "slug": "marugame",
-      "races": 2430,
       "manCount": 416,
       "manRate": 17.1
     },
@@ -219,16 +219,16 @@
       "stadium": "津",
       "jcd": 9,
       "slug": "tsu",
-      "races": 2338,
-      "manCount": 382,
+      "races": 2349,
+      "manCount": 384,
       "manRate": 16.3
     },
     {
       "stadium": "常滑",
       "jcd": 8,
       "slug": "tokoname",
-      "races": 2562,
-      "manCount": 416,
+      "races": 2574,
+      "manCount": 417,
       "manRate": 16.2
     },
     {
@@ -243,25 +243,25 @@
       "stadium": "大村",
       "jcd": 24,
       "slug": "omura",
-      "races": 2439,
-      "manCount": 377,
+      "races": 2451,
+      "manCount": 381,
       "manRate": 15.5
     },
     {
       "stadium": "唐津",
       "jcd": 23,
       "slug": "karatsu",
-      "races": 2165,
-      "manCount": 327,
+      "races": 2177,
+      "manCount": 329,
       "manRate": 15.1
     },
     {
       "stadium": "下関",
       "jcd": 19,
       "slug": "shimonoseki",
-      "races": 2175,
+      "races": 2187,
       "manCount": 326,
-      "manRate": 15.0
+      "manRate": 14.9
     },
     {
       "stadium": "徳山",
@@ -283,16 +283,16 @@
       "stadium": "尼崎",
       "jcd": 13,
       "slug": "amagasaki",
-      "races": 2017,
-      "manCount": 287,
+      "races": 2029,
+      "manCount": 288,
       "manRate": 14.2
     },
     {
       "stadium": "福岡",
       "jcd": 22,
       "slug": "fukuoka",
-      "races": 2459,
-      "manCount": 348,
+      "races": 2471,
+      "manCount": 351,
       "manRate": 14.2
     }
   ],
