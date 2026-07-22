@@ -31,7 +31,7 @@ $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" 
 
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger `
     -Settings $settings -Principal $principal `
-    -Description 'mbrace Kファイル差分収集 → motorUsage.json 再生成 → 変更があればcommit&push' `
+    -Description 'mbrace Kファイル差分収集 → motorUsage.json 再生成 / motorParts.json モーターNo空欄補填 → 変更があればcommit&push' `
     -Force | Out-Null
 
 "登録しました: $TaskName"
