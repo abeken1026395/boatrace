@@ -13,8 +13,8 @@
 #     （buildMotorUsage.parse_text は着順=数字前提で S0/S1 等 5件を取りこぼす）
 #   - Kで実際に引けた (jcd,開催日,登番) のモーターNoのみ埋める。引けない/衝突は空のまま（創作しない）。
 #   - JSON全体を再シリアライズしない。空 `"モーターNo": ""` の行だけを records 順に正規表現置換する。
-#     ＝他フィールド・空白・改行(LF)・末尾を1バイトも触らない（再dump差異の事故を構造的に排除）。
-#   - 書き込み前に自己検証: モーターNo以外の全フィールドがバイト不変 / CR混入なし /
+#     ＝他フィールド・空白・改行・末尾を触らない（再dump差異の事故を構造的に排除）。行末はLF/CRLF不問。
+#   - 書き込み前に自己検証: モーターNo以外の全フィールドが不変（JSON値レベル・行末非依存）/
 #     空欄の減少数＝補填数。1つでも崩れたら書かずに異常終了する。
 #
 # 使い方:
@@ -98,9 +98,10 @@ def build_k_index(kdir, need_days=None):
 
 
 def backfill(path, kdir, dry=False):
+    # 行末は LF/CRLF どちらでも可（git autocrlf で作業ツリーが CRLF になる）。
+    # 置換は "モーターNo" の値のみを対象とし改行を足し引きしないため行末は保存され、
+    # 検証も JSON 値レベルで行うので行末に依存しない。commit 時に git が正規化する。
     raw = open(path, "rb").read()
-    if b"\r" in raw:
-        raise SystemExit("入力に CR が混入している（LF専用のはず）。中止。")
     text = raw.decode("utf-8")
     data = json.loads(text)
     recs = data.get("records", [])
@@ -140,10 +141,8 @@ def backfill(path, kdir, dry=False):
         return m.group(1) + ('""' if v is None else '"%s"' % v)
     new_text = EMPTY_RE.sub(repl, text)
 
-    # ---- 自己検証（書く前に必ず全問通す） --------------------------------
+    # ---- 自己検証（書く前に必ず全問通す。行末非依存＝JSON値レベルで比較） --------
     new_bytes = new_text.encode("utf-8")
-    if b"\r" in new_bytes:
-        raise SystemExit("検証NG: CR が混入した")
     new_data = json.loads(new_text)
     nrecs = new_data.get("records", [])
     if len(nrecs) != len(recs):
