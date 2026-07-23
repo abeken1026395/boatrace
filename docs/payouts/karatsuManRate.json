@@ -4,106 +4,106 @@
   "threshold": 10000,
   "period": {
     "from": "2025/07/16",
-    "to": "2026/07/22",
-    "days": 182
+    "to": "2026/07/23",
+    "days": 183
   },
-  "totalRaces": 2177,
-  "manTotal": 329,
+  "totalRaces": 2189,
+  "manTotal": 330,
   "races": [
     {
       "rno": 1,
-      "races": 182,
+      "races": 183,
       "manCount": 21,
       "manRate": 11.5,
-      "avgPayout": 5462,
+      "avgPayout": 5434,
       "maxPayout": 123440
     },
     {
       "rno": 2,
-      "races": 182,
+      "races": 183,
       "manCount": 22,
-      "manRate": 12.1,
-      "avgPayout": 6721,
+      "manRate": 12.0,
+      "avgPayout": 6688,
       "maxPayout": 198870
     },
     {
       "rno": 3,
-      "races": 182,
+      "races": 183,
       "manCount": 27,
       "manRate": 14.8,
-      "avgPayout": 7961,
+      "avgPayout": 7919,
       "maxPayout": 209780
     },
     {
       "rno": 4,
-      "races": 182,
+      "races": 183,
       "manCount": 30,
-      "manRate": 16.5,
-      "avgPayout": 7278,
+      "manRate": 16.4,
+      "avgPayout": 7291,
       "maxPayout": 147660
     },
     {
       "rno": 5,
-      "races": 182,
+      "races": 183,
       "manCount": 20,
-      "manRate": 11.0,
-      "avgPayout": 6285,
+      "manRate": 10.9,
+      "avgPayout": 6260,
       "maxPayout": 150880
     },
     {
       "rno": 6,
-      "races": 182,
+      "races": 183,
       "manCount": 26,
-      "manRate": 14.3,
-      "avgPayout": 6230,
+      "manRate": 14.2,
+      "avgPayout": 6205,
       "maxPayout": 109050
     },
     {
       "rno": 7,
-      "races": 181,
+      "races": 182,
       "manCount": 28,
-      "manRate": 15.5,
-      "avgPayout": 6858,
+      "manRate": 15.4,
+      "avgPayout": 6835,
       "maxPayout": 101240
     },
     {
       "rno": 8,
-      "races": 180,
+      "races": 181,
       "manCount": 31,
-      "manRate": 17.2,
-      "avgPayout": 8067,
+      "manRate": 17.1,
+      "avgPayout": 8044,
       "maxPayout": 157120
     },
     {
       "rno": 9,
-      "races": 181,
+      "races": 182,
       "manCount": 31,
-      "manRate": 17.1,
-      "avgPayout": 7605,
+      "manRate": 17.0,
+      "avgPayout": 7570,
       "maxPayout": 176920
     },
     {
       "rno": 10,
-      "races": 181,
+      "races": 182,
       "manCount": 24,
-      "manRate": 13.3,
-      "avgPayout": 5233,
+      "manRate": 13.2,
+      "avgPayout": 5211,
       "maxPayout": 82030
     },
     {
       "rno": 11,
-      "races": 181,
-      "manCount": 34,
-      "manRate": 18.8,
-      "avgPayout": 10691,
+      "races": 182,
+      "manCount": 35,
+      "manRate": 19.2,
+      "avgPayout": 10810,
       "maxPayout": 237130
     },
     {
       "rno": 12,
-      "races": 181,
+      "races": 182,
       "manCount": 35,
-      "manRate": 19.3,
-      "avgPayout": 8769,
+      "manRate": 19.2,
+      "avgPayout": 8725,
       "maxPayout": 188880
     }
   ],
@@ -173,7 +173,7 @@
     {
       "lane": 1,
       "count": 42,
-      "share": 12.8
+      "share": 12.7
     },
     {
       "lane": 2,
@@ -187,8 +187,8 @@
     },
     {
       "lane": 4,
-      "count": 73,
-      "share": 22.2
+      "count": 74,
+      "share": 22.4
     },
     {
       "lane": 5,
@@ -203,12 +203,12 @@
   ],
   "calmRace": {
     "rno": 5,
-    "manRate": 11.0,
-    "avgPayout": 6285
+    "manRate": 10.9,
+    "avgPayout": 6260
   },
   "wildRace": {
-    "rno": 12,
-    "manRate": 19.3,
-    "avgPayout": 8769
+    "rno": 11,
+    "manRate": 19.2,
+    "avgPayout": 10810
   }
 }
