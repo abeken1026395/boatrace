@@ -97,11 +97,16 @@ function MotorKarte({parts}){
           const chg = String(p["部品交換"]||"");
           const nm = String(p["氏名"]||"");
           const setsu = String(p["節名"]||"");
+          const tenji = String(p["展示タイム"]||"");
+          // 交換行のみ：この機のカルテ内で直前(iより前)の、展示タイムが空でない最も近い行を引く。
+          // 差の数値・評価語は出さず、前後を矢印で並べるだけ（解釈は読者に委ねる・司令塔裁定）。
+          let prevTenji = "";
+          if(chg && tenji){ for(let j=i-1;j>=0;j--){ const t=String(parts[j]["展示タイム"]||""); if(t){ prevTenji=t; break; } } }
           return (
             <div key={i} style={{borderTop:i?"1px solid #16273a":"none",paddingTop:i?3:0,marginTop:i?3:0}}>
               <b style={{color:"#e0e6ed"}}>{fmtHd(p["開催日"])}</b> {p.rno}R{p["枠"]?` ${p["枠"]}号`:""}{nm?<span style={{color:"#8fd0ff"}}> ・{nm}</span>:null}{setsu?<span style={{color:"#7d94a8"}} title={setsu}> ・{truncStr(setsu,15)}</span>:null} ・ {chg
                 ? <span style={{color:"#8fd6c0",fontWeight:700}}>部品交換 {chg}</span>
-                : <span style={{color:"#6b7f95"}}>整備なし</span>}{p["プロペラ"]?<span style={{color:"#ffd166"}}> ・ペラ新</span>:null}{p["展示タイム"]?<span style={{color:"#7d94a8"}}> ・展示{p["展示タイム"]}</span>:null}
+                : <span style={{color:"#6b7f95"}}>整備なし</span>}{p["プロペラ"]?<span style={{color:"#ffd166"}}> ・ペラ新</span>:null}{tenji?<span style={{color:"#7d94a8"}}> ・展示{prevTenji?` ${prevTenji} → ${tenji}`:tenji}</span>:null}
             </div>
           );
         })}
